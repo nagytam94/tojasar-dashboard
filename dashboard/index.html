@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🥚 Heti Tojásár Dashboard</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e8eaed; --muted:#9aa0aa; --accent:#c724b1; --accent2:#7b2ff7;
+    --up:#ff5470; --down:#19c37d; --grid:#232732;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  header{padding:22px 26px 14px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#14171e,transparent)}
+  h1{margin:0;font-size:22px;letter-spacing:.2px}
+  h1 .dot{color:var(--accent)}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:5px}
+  .sub b{color:var(--txt);font-weight:600}
+  .wrap{display:grid;grid-template-columns:268px 1fr;gap:18px;padding:18px 22px;align-items:start}
+  @media(max-width:880px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .panel h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .seg button{flex:1;min-width:54px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);
+    border-radius:9px;padding:8px 6px;font-size:12.5px;cursor:pointer;transition:.12s}
+  .seg button:hover{color:var(--txt);border-color:#3a414f}
+  .seg button.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+  .blk{margin-bottom:18px}
+  .grp{margin-bottom:10px}
+  .grp .gh{display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px;color:var(--txt);
+    cursor:pointer;padding:4px 0;user-select:none}
+  .grp .gh .cc{font-size:11px;color:var(--muted);font-weight:400;margin-left:auto}
+  .opt{display:flex;align-items:center;gap:8px;padding:3px 0 3px 18px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .opt:hover{color:var(--txt)}
+  .opt input{accent-color:var(--accent);width:14px;height:14px}
+  .opt .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .opt.sel{color:var(--txt)}
+  .chartbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 10px 6px}
+  .chart-head{display:flex;align-items:baseline;gap:10px;padding:2px 8px 10px}
+  .chart-head .t{font-weight:600}
+  .chart-head .u{color:var(--accent);font-size:12px;border:1px solid var(--accent);border-radius:20px;padding:1px 9px}
+  .chart-head .rng{color:var(--muted);font-size:12px;margin-left:auto}
+  svg{width:100%;display:block;overflow:visible}
+  .gridln{stroke:var(--grid);stroke-width:1}
+  .axis{fill:var(--muted);font-size:11px}
+  .ser{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
+  .dotpt{stroke:#0f1115;stroke-width:1.5}
+  .hover-line{stroke:#4a5160;stroke-width:1;stroke-dasharray:3 3}
+  .tip{position:fixed;pointer-events:none;background:#0c0e13ee;border:1px solid #333a47;
+    border-radius:10px;padding:9px 11px;font-size:12px;z-index:50;min-width:170px;
+    box-shadow:0 8px 30px #000a;backdrop-filter:blur(6px);display:none}
+  .tip .tw{color:var(--muted);margin-bottom:6px;font-size:11px}
+  .tip .row{display:flex;align-items:center;gap:7px;margin:2px 0}
+  .tip .row .sw{width:9px;height:9px;border-radius:2px;flex:none}
+  .tip .row .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .tip .row .vl{font-variant-numeric:tabular-nums;font-weight:600}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:10px;margin-top:16px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .card .nm{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .card .nm .sw{width:9px;height:9px;border-radius:2px;flex:none}
+  .card .pr{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .card .pr small{font-size:11px;color:var(--muted);font-weight:400}
+  .card .ch{font-size:12px;font-variant-numeric:tabular-nums;margin-top:2px}
+  .ch.u{color:var(--up)} .ch.d{color:var(--down)} .ch.n{color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:60px 0}
+  .foot{color:var(--muted);font-size:11.5px;padding:6px 26px 26px}
+  .mockwarn{background:#3a2410;border:1px solid #6b4310;color:#f0b24a;border-radius:10px;
+    padding:8px 12px;margin:12px 22px 0;font-size:12.5px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>🥚 Heti Tojásár <span class="dot">Dashboard</span></h1>
+  <div class="sub" id="sub">Betöltés…</div>
+</header>
+<div class="mockwarn" id="mockwarn">⚠️ MOCK adat van betöltve — a valós scraper még nem írta felül a data.json-t.</div>
+
+<div class="wrap">
+  <aside class="panel">
+    <div class="blk">
+      <h2>Egység</h2>
+      <div class="seg" id="unitSeg"></div>
+      <div class="sub" style="font-size:11px">Egy chart = egy egység (a különböző egységeket nem keverjük egy tengelyen).</div>
+    </div>
+    <div class="blk">
+      <h2>Időtáv</h2>
+      <div class="seg" id="rangeSeg">
+        <button data-r="4">1 hó</button>
+        <button data-r="13">3 hó</button>
+        <button data-r="52" class="active">1 év</button>
+        <button data-r="0">Mind</button>
+      </div>
+    </div>
+    <div class="blk">
+      <h2 style="display:flex;justify-content:space-between">Noteringek
+        <span style="cursor:pointer;color:var(--accent);text-transform:none;letter-spacing:0" id="clearAll">törlés</span>
+      </h2>
+      <div id="groups"></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="chartbox">
+      <div class="chart-head">
+        <span class="t">Ár alakulása</span>
+        <span class="u" id="chUnit">EUR/100</span>
+        <span class="rng" id="chRange"></span>
+      </div>
+      <div id="chart"></div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="foot">Forrás: pluimveebeurs.com (heti noteringok) · adat: <span id="genat">—</span> · auto-frissül hétfőnként · Cloudus × Turing × Kepes</div>
+
+<script>
+const PALETTE=["#c724b1","#19c37d","#3b9dff","#ffb020","#ff5470","#9b6bff","#16c8c8","#e8e85a",
+  "#ff8a3d","#5ad1a0","#d05ce3","#62b6ff","#7ee787","#f78fb3","#b0bec5"];
+const $=s=>document.querySelector(s);
+let DATA=null, UNIT=null, RANGE=52, SEL=new Set(), colorMap={};
+
+function fmt(n,u){ if(n==null)return"–"; return (u==="EUR/kg")? n.toFixed(2): n.toFixed(2); }
+function groupBase(s){ // group key: notering + unit dimension
+  return s.label.split("—")[0].trim() + (s.unit==="EUR/kg" && !/kg/i.test(s.label.split("—")[0])?"":"");
+}
+function notBase(s){ return s.key.split("__")[0] + "|" + s.unit; }
+
+async function load(){
+  let d;
+  try{ const r=await fetch("data.json",{cache:"no-store"}); d=await r.json(); }
+  catch(e){ $("#sub").textContent="❌ data.json nem tölthető. Indítsd HTTP szerverrel (pl. python3 -m http.server a dashboard/ mappában)."; return; }
+  DATA=d;
+  if(d._mock) $("#mockwarn").style.display="block";
+  // weeks universe (sorted unique)
+  const units=[...new Set(d.series.map(s=>s.unit))];
+  UNIT=units.includes(d.default_unit||"EUR/100")?(d.default_unit||"EUR/100"):units[0];
+  // color assignment per series key (stable)
+  d.series.forEach((s,i)=> colorMap[s.key]=PALETTE[i%PALETTE.length]);
+  const gen=new Date(d.generated_at);
+  const allw=[...new Set(d.series.flatMap(s=>s.points.map(p=>p.week)))].sort();
+  $("#genat").textContent=isNaN(gen)?d.generated_at:gen.toLocaleString("hu-HU");
+  $("#sub").innerHTML=`<b>${d.series.length}</b> ársor · <b>${allw.length}</b> hét (${allw[0]} → ${allw[allw.length-1]}) · egységek: <b>${units.join(", ")}</b>`;
+  buildUnitSeg(units);
+  buildRange();
+  renderControls();
+  defaultSelect();
+  draw();
+}
+
+function buildUnitSeg(units){
+  const seg=$("#unitSeg"); seg.innerHTML="";
+  units.forEach(u=>{
+    const b=document.createElement("button"); b.textContent=u; if(u===UNIT)b.classList.add("active");
+    b.onclick=()=>{ UNIT=u; [...seg.children].forEach(c=>c.classList.toggle("active",c.textContent===u));
+      renderControls(); defaultSelect(); draw(); };
+    seg.appendChild(b);
+  });
+}
+function buildRange(){
+  $("#rangeSeg").querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{ RANGE=+b.dataset.r; $("#rangeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active"); draw(); };
+  });
+}
+
+function unitSeries(){ return DATA.series.filter(s=>s.unit===UNIT); }
+
+function renderControls(){
+  const host=$("#groups"); host.innerHTML="";
+  // group by notering-base within unit
+  const groups={};
+  unitSeries().forEach(s=>{ const k=s.key.split("__")[0]; (groups[k]=groups[k]||[]).push(s); });
+  Object.entries(groups).forEach(([gk,arr])=>{
+    const g=document.createElement("div"); g.className="grp";
+    const head=document.createElement("div"); head.className="gh";
+    const cb=document.createElement("input"); cb.type="checkbox";
+    const title=arr[0].label.split("—")[0].trim();
+    head.innerHTML=`<span class="cc" data-n>${arr.length}</span>`;
+    head.prepend(cb); const lab=document.createElement("span"); lab.textContent=title; head.insertBefore(lab,head.firstChild.nextSibling);
+    cb.onchange=()=>{ arr.forEach(s=> cb.checked?SEL.add(s.key):SEL.delete(s.key)); renderControls(); draw(); };
+    g.appendChild(head);
+    arr.forEach(s=>{
+      const o=document.createElement("label"); o.className="opt"+(SEL.has(s.key)?" sel":"");
+      const i=document.createElement("input"); i.type="checkbox"; i.checked=SEL.has(s.key);
+      i.onchange=()=>{ i.checked?SEL.add(s.key):SEL.delete(s.key); renderControls(); draw(); };
+      const sw=document.createElement("span"); sw.className="sw"; sw.style.background=colorMap[s.key];
+      const nm=document.createElement("span");
+      const sub=s.label.split("—")[1]; nm.textContent=sub?sub.trim():s.label;
+      o.append(i,sw,nm); g.appendChild(o);
+    });
+    const anySel=arr.some(s=>SEL.has(s.key)), allSel=arr.every(s=>SEL.has(s.key));
+    cb.checked=allSel; cb.indeterminate=anySel&&!allSel;
+    host.appendChild(g);
+  });
+}
+
+function defaultSelect(){
+  SEL=new Set();
+  // one representative line per notering-base: prefer L+wit, else L, else middle
+  const groups={};
+  unitSeries().forEach(s=>{ const k=s.key.split("__")[0]; (groups[k]=groups[k]||[]).push(s); });
+  Object.values(groups).forEach(arr=>{
+    let pick=arr.find(s=>(s.size==="L")&&(s.color==="wit"))
+          || arr.find(s=>s.size==="L"||s.size==="59"||s.size==="kg_59")
+          || arr.find(s=>s.color==="wit")
+          || arr[Math.floor(arr.length/2)];
+    if(pick)SEL.add(pick.key);
+  });
+  renderControls();
+}
+
+$("#clearAll").onclick=()=>{ SEL=new Set(); renderControls(); draw(); };
+
+function draw(){
+  const box=$("#chart"); const W=box.clientWidth||820, H=384;
+  const m={l:54,r:18,t:14,b:42};
+  $("#chUnit").textContent=UNIT;
+  const series=unitSeries().filter(s=>SEL.has(s.key));
+  // global week axis (union across selected, sorted)
+  let weeks=[...new Set(series.flatMap(s=>s.points.map(p=>p.week)))].sort();
+  if(RANGE>0) weeks=weeks.slice(-RANGE);
+  $("#chRange").textContent=weeks.length?`${weeks[0]} – ${weeks[weeks.length-1]} · ${weeks.length} hét`:"";
+  if(!series.length||!weeks.length){
+    box.innerHTML=`<div class="empty">Válassz legalább egy noteringet a bal oldali listából.</div>`;
+    $("#cards").innerHTML=""; return;
+  }
+  const wIdx=new Map(weeks.map((w,i)=>[w,i]));
+  // value range
+  let lo=Infinity,hi=-Infinity;
+  series.forEach(s=>s.points.forEach(p=>{ if(wIdx.has(p.week)&&p.price!=null){ lo=Math.min(lo,p.price);hi=Math.max(hi,p.price);} }));
+  if(lo===Infinity){lo=0;hi=1;}
+  const pad=(hi-lo)*0.12||1; lo-=pad; hi+=pad;
+  const X=i=> m.l + (weeks.length<=1? (W-m.l-m.r)/2 : i*(W-m.l-m.r)/(weeks.length-1));
+  const Y=v=> m.t + (1-(v-lo)/(hi-lo))*(H-m.t-m.b);
+  // gridlines (5)
+  let svg=`<svg viewBox="0 0 ${W} ${H}" id="svg">`;
+  const ticks=5;
+  for(let t=0;t<=ticks;t++){ const v=lo+(hi-lo)*t/ticks; const y=Y(v);
+    svg+=`<line class="gridln" x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}"/>`;
+    svg+=`<text class="axis" x="${m.l-8}" y="${y+3}" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+  // x labels (~8)
+  const step=Math.max(1,Math.ceil(weeks.length/8));
+  weeks.forEach((w,i)=>{ if(i%step===0||i===weeks.length-1){ const x=X(i);
+    svg+=`<text class="axis" x="${x}" y="${H-m.b+18}" text-anchor="middle">${w.replace("2026-","").replace("2025-","'25 ")}</text>`; }});
+  // series paths
+  series.forEach(s=>{
+    const pm=new Map(s.points.map(p=>[p.week,p.price]));
+    let d="",started=false;
+    weeks.forEach((w,i)=>{ const v=pm.get(w); if(v==null){started=false;return;}
+      d+=(started?"L":"M")+X(i)+" "+Y(v)+" "; started=true; });
+    svg+=`<path class="ser" d="${d}" stroke="${colorMap[s.key]}"/>`;
+    // last point dot
+    for(let i=weeks.length-1;i>=0;i--){ const v=pm.get(weeks[i]); if(v!=null){
+      svg+=`<circle class="dotpt" cx="${X(i)}" cy="${Y(v)}" r="3.4" fill="${colorMap[s.key]}"/>`; break; } }
+  });
+  svg+=`<line class="hover-line" id="hl" x1="0" y1="${m.t}" x2="0" y2="${H-m.b}" style="opacity:0"/>`;
+  svg+=`<rect id="cap" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/>`;
+  svg+=`</svg>`;
+  box.innerHTML=svg;
+  // hover
+  const cap=$("#cap"),hl=$("#hl"),tip=$("#tip");
+  cap.addEventListener("mousemove",e=>{
+    const r=$("#svg").getBoundingClientRect(); const sx=(e.clientX-r.left)*(W/r.width);
+    let i=Math.round((sx-m.l)/((W-m.l-m.r)/Math.max(1,weeks.length-1))); i=Math.max(0,Math.min(weeks.length-1,i));
+    const xx=X(i); hl.setAttribute("x1",xx);hl.setAttribute("x2",xx);hl.style.opacity=1;
+    const w=weeks[i];
+    let rows="";
+    series.map(s=>({s,p:s.points.find(p=>p.week===w)})).filter(o=>o.p&&o.p.price!=null)
+      .sort((a,b)=>b.p.price-a.p.price).forEach(({s,p})=>{
+        const ch=p.change==null?"":` <span style="color:${p.change>0?'var(--up)':p.change<0?'var(--down)':'var(--muted)'}">${p.change>0?'+':''}${p.change.toFixed(2)}</span>`;
+        rows+=`<div class="row"><span class="sw" style="background:${colorMap[s.key]}"></span><span class="nm">${(s.label.split("—")[1]||s.label).trim()}</span><span class="vl">${p.price.toFixed(2)}${ch}</span></div>`;
+      });
+    const pt=series.map(s=>s.points.find(p=>p.week===w)).find(Boolean);
+    tip.innerHTML=`<div class="tw">${w}${pt&&pt.date?" · "+pt.date:""} · ${UNIT}</div>${rows}`;
+    tip.style.display="block";
+    let tx=e.clientX+16, ty=e.clientY-10;
+    if(tx+220>innerWidth)tx=e.clientX-230; tip.style.left=tx+"px"; tip.style.top=Math.max(8,ty)+"px";
+  });
+  cap.addEventListener("mouseleave",()=>{ hl.style.opacity=0; tip.style.display="none"; });
+  drawCards(series,weeks[weeks.length-1]);
+}
+
+function drawCards(series,lastWeek){
+  const host=$("#cards"); host.innerHTML="";
+  series.forEach(s=>{
+    let p=null; for(let i=s.points.length-1;i>=0;i--){ if(s.points[i].price!=null){p=s.points[i];break;} }
+    if(!p)return;
+    const cls=p.change>0?"u":p.change<0?"d":"n";
+    const arr=p.change>0?"▲":p.change<0?"▼":"—";
+    const c=document.createElement("div"); c.className="card";
+    c.innerHTML=`<div class="nm"><span class="sw" style="background:${colorMap[s.key]}"></span>${s.label}</div>
+      <div class="pr">${p.price.toFixed(2)} <small>${UNIT}</small></div>
+      <div class="ch ${cls}">${arr} ${p.change==null?"–":(p.change>0?"+":"")+p.change.toFixed(2)} <span style="color:var(--muted)">· ${p.week}</span></div>`;
+    host.appendChild(c);
+  });
+}
+addEventListener("resize",()=>{ if(DATA)draw(); });
+load();
+</script>
+</body>
+</html>

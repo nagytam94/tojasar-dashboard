@@ -1,0 +1,9 @@
+data/*.db
+data/*.log
+data/*.backup
+data/*backup*.db
+dashboard/*backup*.json
+dashboard/*.consumer-backup-*.json
+__pycache__/
+scraper/__pycache__/
+.DS_Store
