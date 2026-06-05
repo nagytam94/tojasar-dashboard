@@ -12,6 +12,8 @@ CATEGORY_CONFIG = {
     "kelteto": {"label": "Keltető tojás", "default_unit": "EUR/db"},
     "ipari": {"label": "Ipari tojás", "default_unit": "EUR/kg"},
     "etkezesi": {"label": "Étkezési tojás", "default_unit": "EUR/100"},
+    "napos_csibe": {"label": "Napos csibe", "default_unit": "EUR/db"},
+    "broiler": {"label": "Broiler", "default_unit": "EUR/100kg"},
 }
 
 
@@ -27,9 +29,12 @@ class Source:
     default_unit: str
     export_unit: str
     price_scale: float = 1.0
+    url_override: str | None = None
 
     @property
     def url(self) -> str:
+        if self.url_override:
+            return self.url_override
         return f"{BASE_URL}/{self.site_category}/{self.slug}"
 
 
@@ -155,6 +160,30 @@ SOURCES: tuple[Source, ...] = (
         site_category="eierprijzen",
         default_unit="EUR/100",
         export_unit="EUR/100",
+    ),
+    Source(
+        key="napos_csibe_cenyrolnicze",
+        label="Napos csibe",
+        country="PL",
+        slug="",
+        kind="cenyrolnicze_chicks",
+        category="napos_csibe",
+        site_category="",
+        default_unit="EUR/db",
+        export_unit="EUR/db",
+        url_override="https://www.cenyrolnicze.pl/drob/piskleta",
+    ),
+    Source(
+        key="eu_whole_broiler_65",
+        label="EU Whole broiler (65%)",
+        country="EU",
+        slug="",
+        kind="eu_broiler",
+        category="broiler",
+        site_category="",
+        default_unit="EUR/100kg",
+        export_unit="EUR/100kg",
+        url_override="https://api.tech.ec.europa.eu/agrifood/api/poultry/prices",
     ),
 )
 

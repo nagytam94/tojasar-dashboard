@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-05T06:39:32+03:00",
-  "schema_version": "0.3",
+  "generated_at": "2026-06-05T06:54:18+03:00",
+  "schema_version": "0.4",
   "categories": [
     {
       "key": "kelteto",
@@ -15738,6 +15738,364 @@
               "date": "2026-05-29",
               "price": 23.1,
               "change": -0.38
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "napos_csibe",
+      "label": "Napos csibe",
+      "default_unit": "EUR/db",
+      "series": [
+        {
+          "key": "ross_308",
+          "label": "Ross 308",
+          "country": "PL",
+          "size": null,
+          "color": null,
+          "unit": "EUR/db",
+          "points": [
+            {
+              "week": "2026-W23",
+              "date": "2026-06-01",
+              "price": 0.720529,
+              "change": null,
+              "native_price": 3.05,
+              "native_unit": "PLN/db",
+              "fx_rate": 4.233,
+              "fx_rate_unit": "PLN/EUR",
+              "fx_rate_date": "2026-06-01",
+              "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "broiler",
+      "label": "Broiler",
+      "default_unit": "EUR/100kg",
+      "series": [
+        {
+          "key": "eu_whole_broiler_65",
+          "label": "EU Whole broiler (65%)",
+          "country": "EU",
+          "size": null,
+          "color": null,
+          "unit": "EUR/100kg",
+          "points": [
+            {
+              "week": "2025-W23",
+              "date": "2025-06-02",
+              "price": 303.63,
+              "change": null
+            },
+            {
+              "week": "2025-W24",
+              "date": "2025-06-09",
+              "price": 306.23,
+              "change": 2.6
+            },
+            {
+              "week": "2025-W25",
+              "date": "2025-06-16",
+              "price": 308.97,
+              "change": 2.74
+            },
+            {
+              "week": "2025-W26",
+              "date": "2025-06-23",
+              "price": 306.89,
+              "change": -2.08
+            },
+            {
+              "week": "2025-W27",
+              "date": "2025-06-30",
+              "price": 294.12,
+              "change": -12.77
+            },
+            {
+              "week": "2025-W28",
+              "date": "2025-07-07",
+              "price": 298.6,
+              "change": 4.48
+            },
+            {
+              "week": "2025-W29",
+              "date": "2025-07-14",
+              "price": 300.67,
+              "change": 2.07
+            },
+            {
+              "week": "2025-W30",
+              "date": "2025-07-21",
+              "price": 295.14,
+              "change": -5.53
+            },
+            {
+              "week": "2025-W31",
+              "date": "2025-07-28",
+              "price": 297.72,
+              "change": 2.58
+            },
+            {
+              "week": "2025-W32",
+              "date": "2025-08-04",
+              "price": 301.04,
+              "change": 3.32
+            },
+            {
+              "week": "2025-W33",
+              "date": "2025-08-11",
+              "price": 299.5,
+              "change": -1.54
+            },
+            {
+              "week": "2025-W34",
+              "date": "2025-08-18",
+              "price": 301.02,
+              "change": 1.52
+            },
+            {
+              "week": "2025-W35",
+              "date": "2025-08-25",
+              "price": 301.59,
+              "change": 0.57
+            },
+            {
+              "week": "2025-W36",
+              "date": "2025-09-01",
+              "price": 300.9,
+              "change": -0.69
+            },
+            {
+              "week": "2025-W37",
+              "date": "2025-09-08",
+              "price": 301.3,
+              "change": 0.4
+            },
+            {
+              "week": "2025-W38",
+              "date": "2025-09-15",
+              "price": 302.47,
+              "change": 1.17
+            },
+            {
+              "week": "2025-W39",
+              "date": "2025-09-22",
+              "price": 300.61,
+              "change": -1.86
+            },
+            {
+              "week": "2025-W40",
+              "date": "2025-09-29",
+              "price": 301.19,
+              "change": 0.58
+            },
+            {
+              "week": "2025-W41",
+              "date": "2025-10-06",
+              "price": 300.32,
+              "change": -0.87
+            },
+            {
+              "week": "2025-W42",
+              "date": "2025-10-13",
+              "price": 301.02,
+              "change": 0.7
+            },
+            {
+              "week": "2025-W43",
+              "date": "2025-10-20",
+              "price": 299.01,
+              "change": -2.01
+            },
+            {
+              "week": "2025-W44",
+              "date": "2025-10-27",
+              "price": 321.38,
+              "change": 22.37
+            },
+            {
+              "week": "2025-W45",
+              "date": "2025-11-03",
+              "price": 289.08,
+              "change": -32.3
+            },
+            {
+              "week": "2025-W46",
+              "date": "2025-11-10",
+              "price": 288.58,
+              "change": -0.5
+            },
+            {
+              "week": "2025-W47",
+              "date": "2025-11-17",
+              "price": 287.9,
+              "change": -0.68
+            },
+            {
+              "week": "2025-W48",
+              "date": "2025-11-24",
+              "price": 285.29,
+              "change": -2.61
+            },
+            {
+              "week": "2025-W49",
+              "date": "2025-12-01",
+              "price": 283.44,
+              "change": -1.85
+            },
+            {
+              "week": "2025-W50",
+              "date": "2025-12-08",
+              "price": 281.5,
+              "change": -1.94
+            },
+            {
+              "week": "2025-W51",
+              "date": "2025-12-15",
+              "price": 291.1,
+              "change": 9.6
+            },
+            {
+              "week": "2025-W52",
+              "date": "2025-12-22",
+              "price": 286.99,
+              "change": -4.11
+            },
+            {
+              "week": "2026-W01",
+              "date": "2025-12-29",
+              "price": 287.36,
+              "change": 0.37
+            },
+            {
+              "week": "2026-W02",
+              "date": "2026-01-05",
+              "price": 288.94,
+              "change": 1.58
+            },
+            {
+              "week": "2026-W03",
+              "date": "2026-01-12",
+              "price": 283.05,
+              "change": -5.89
+            },
+            {
+              "week": "2026-W04",
+              "date": "2026-01-19",
+              "price": 288.19,
+              "change": 5.14
+            },
+            {
+              "week": "2026-W05",
+              "date": "2026-01-26",
+              "price": 287.99,
+              "change": -0.2
+            },
+            {
+              "week": "2026-W06",
+              "date": "2026-02-02",
+              "price": 291.13,
+              "change": 3.14
+            },
+            {
+              "week": "2026-W07",
+              "date": "2026-02-09",
+              "price": 293.08,
+              "change": 1.95
+            },
+            {
+              "week": "2026-W08",
+              "date": "2026-02-16",
+              "price": 292.03,
+              "change": -1.05
+            },
+            {
+              "week": "2026-W09",
+              "date": "2026-02-23",
+              "price": 290.56,
+              "change": -1.47
+            },
+            {
+              "week": "2026-W10",
+              "date": "2026-03-02",
+              "price": 292.14,
+              "change": 1.58
+            },
+            {
+              "week": "2026-W11",
+              "date": "2026-03-09",
+              "price": 292.29,
+              "change": 0.15
+            },
+            {
+              "week": "2026-W12",
+              "date": "2026-03-16",
+              "price": 294.54,
+              "change": 2.25
+            },
+            {
+              "week": "2026-W13",
+              "date": "2026-03-23",
+              "price": 295.22,
+              "change": 0.68
+            },
+            {
+              "week": "2026-W14",
+              "date": "2026-03-30",
+              "price": 295.47,
+              "change": 0.25
+            },
+            {
+              "week": "2026-W15",
+              "date": "2026-04-06",
+              "price": 296.02,
+              "change": 0.55
+            },
+            {
+              "week": "2026-W16",
+              "date": "2026-04-13",
+              "price": 290.13,
+              "change": -5.89
+            },
+            {
+              "week": "2026-W17",
+              "date": "2026-04-20",
+              "price": 288.74,
+              "change": -1.39
+            },
+            {
+              "week": "2026-W18",
+              "date": "2026-04-27",
+              "price": 288.4,
+              "change": -0.34
+            },
+            {
+              "week": "2026-W19",
+              "date": "2026-05-04",
+              "price": 293.19,
+              "change": 4.79
+            },
+            {
+              "week": "2026-W20",
+              "date": "2026-05-11",
+              "price": 293.59,
+              "change": 0.4
+            },
+            {
+              "week": "2026-W21",
+              "date": "2026-05-18",
+              "price": 300.1,
+              "change": 6.51
+            },
+            {
+              "week": "2026-W22",
+              "date": "2026-05-25",
+              "price": 299.11,
+              "change": -0.99
             }
           ]
         }

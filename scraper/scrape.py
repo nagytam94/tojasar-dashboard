@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import re
 import sys
@@ -29,11 +31,18 @@ USER_AGENT = "Cloudus-Tojasar-Scraper/0.1 (+local dashboard; contact: owner)"
 REQUEST_TIMEOUT = 30
 REQUEST_DELAY_SECONDS = 0.35
 WEEK_RE = re.compile(r"\b(?:wk|week)\s*(\d{1,2})\b", re.IGNORECASE)
-DATE_DMY_RE = re.compile(r"(\d{1,2})[-/](\d{1,2})(?:[-/](\d{4}))?")
+DATE_DMY_RE = re.compile(r"(\d{1,2})[-/.](\d{1,2})(?:[-/.](\d{4}))?")
 PRICE_RE = re.compile(r"€\s*([+-]?\d+(?:[.,]\d+)?)")
 CHANGE_RE = re.compile(r"€\s*[+-]?\d+(?:[.,]\d+)?\s+([+-]\d+(?:[.,]\d+)?)")
 SIZE_TOKENS = {"XL", "L", "M", "S"}
 COLOR_TOKENS = {"wit", "bruin"}
+ECB_PLN_SERIES_URL = "https://data-api.ecb.europa.eu/service/data/EXR/D.PLN.EUR.SP00.A"
+CHICK_LINES = (
+    ("ross_308", "Ross 308"),
+    ("hubbard_flex", "Hubbard Flex"),
+    ("cobb_500", "Cobb 500"),
+    ("lohmann_brown", "Lohmann (L. Brown)"),
+)
 
 
 def warn(message: str) -> None:
@@ -127,6 +136,144 @@ def fetch_html(session: requests.Session, source: Source) -> str:
     response = session.get(source.url, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.text
+
+
+def parse_polish_period_start(text: str) -> date:
+    matches = list(DATE_DMY_RE.finditer(text))
+    if len(matches) < 2 or not matches[-1].group(3):
+        raise ValueError(f"cannot parse Polish weekly period: {text!r}")
+    year = int(matches[-1].group(3))
+    start = matches[0]
+    return date(year, int(start.group(2)), int(start.group(1)))
+
+
+def fetch_ecb_pln_rate(session: requests.Session, target_date: date) -> dict[str, Any]:
+    start = target_date - timedelta(days=10)
+    response = session.get(
+        ECB_PLN_SERIES_URL,
+        params={"startPeriod": start.isoformat(), "endPeriod": target_date.isoformat(), "format": "csvdata"},
+        timeout=REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    rows = list(csv.DictReader(io.StringIO(response.text)))
+    eligible = [row for row in rows if row.get("TIME_PERIOD") and row["TIME_PERIOD"] <= target_date.isoformat()]
+    if not eligible:
+        raise ValueError(f"no ECB PLN/EUR rate on or before {target_date}")
+    row = max(eligible, key=lambda item: item["TIME_PERIOD"])
+    return {
+        "rate": float(row["OBS_VALUE"]),
+        "date": row["TIME_PERIOD"],
+        "source": "ECB EXR.D.PLN.EUR.SP00.A",
+    }
+
+
+def scrape_cenyrolnicze_chicks(session: requests.Session, source: Source) -> list[dict[str, Any]]:
+    fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    soup = BeautifulSoup(fetch_html(session, source), "html.parser")
+    period_node = soup.select_one(".notowania-date")
+    table = soup.find(id="table-notowania")
+    if not period_node or not table:
+        raise ValueError("weekly period or price table missing")
+    period_start = parse_polish_period_start(period_node.get_text(" ", strip=True))
+    summary = next(
+        (row for row in table.find_all("tr") if "PODSUMOWANIE" in row.get_text(" ", strip=True)),
+        None,
+    )
+    if not summary:
+        raise ValueError("summary row missing")
+    average_cells = [
+        cell.get_text(" ", strip=True)
+        for cell in summary.find_all("td")
+        if "Średnia cena za sztukę" in cell.get_text(" ", strip=True)
+    ]
+    if len(average_cells) < 5:
+        raise ValueError(f"expected 5 chick summary cells, got {len(average_cells)}")
+
+    fx = fetch_ecb_pln_rate(session, period_start)
+    observations = []
+    source_indexes = (0, 1, 2, 4)
+    for (key, label), source_index in zip(CHICK_LINES, source_indexes):
+        match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*$", average_cells[source_index])
+        native_price = parse_number(match.group(1) if match else None)
+        if native_price is None:
+            continue
+        observations.append(
+            {
+                "key": key,
+                "label": label,
+                "country": source.country,
+                "category": source.category,
+                "size": None,
+                "color": None,
+                "unit": "EUR/db",
+                "source_url": source.url,
+                "week_iso": iso_week_from_date(period_start),
+                "observed_date": period_start.isoformat(),
+                "price": round(native_price / fx["rate"], 6),
+                "change": None,
+                "native_price": native_price,
+                "native_unit": "PLN/db",
+                "fx_rate": fx["rate"],
+                "fx_rate_unit": "PLN/EUR",
+                "fx_rate_date": fx["date"],
+                "fx_source": fx["source"],
+                "fetched_at": fetched_at,
+                "raw": {
+                    "kind": source.kind,
+                    "line": label,
+                    "period_start": period_start.isoformat(),
+                    "summary_text": average_cells[source_index],
+                },
+            }
+        )
+    return observations
+
+
+def scrape_eu_broiler(session: requests.Session, source: Source) -> list[dict[str, Any]]:
+    fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    end = date.today()
+    start = end - timedelta(days=370)
+    response = session.get(
+        source.url,
+        params={
+            "memberStateCodes": "EU",
+            "beginDate": start.strftime("%d/%m/%Y"),
+            "endDate": end.strftime("%d/%m/%Y"),
+        },
+        timeout=REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    observations = []
+    previous: float | None = None
+    rows = sorted(response.json(), key=lambda row: datetime.strptime(row["beginDate"], "%d/%m/%Y"))
+    for row in rows:
+        if row.get("productName") != "Whole broiler (65%)" or row.get("priceType") != "Selling price":
+            continue
+        point_date = datetime.strptime(row["beginDate"], "%d/%m/%Y").date()
+        price = parse_number(str(row.get("price", "")).replace("€", ""))
+        if price is None:
+            continue
+        change = None if previous is None else round_change(price - previous)
+        previous = price
+        observations.append(
+            {
+                "key": source.key,
+                "label": source.label,
+                "country": source.country,
+                "category": source.category,
+                "size": None,
+                "color": None,
+                "unit": source.export_unit,
+                "source_url": source.url,
+                "week_iso": iso_week_from_date(point_date),
+                "observed_date": point_date.isoformat(),
+                "price": price,
+                "change": change,
+                "fetched_at": fetched_at,
+                "raw": {"kind": source.kind, "api_row": row},
+            }
+        )
+    return observations
 
 
 def fetch_chart(
@@ -393,6 +540,11 @@ def observations_from_current(
 
 
 def scrape_source(session: requests.Session, source: Source) -> list[dict[str, Any]]:
+    if source.kind == "cenyrolnicze_chicks":
+        return scrape_cenyrolnicze_chicks(session, source)
+    if source.kind == "eu_broiler":
+        return scrape_eu_broiler(session, source)
+
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     html = fetch_html(session, source)
     soup = BeautifulSoup(html, "html.parser")

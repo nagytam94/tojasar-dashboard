@@ -40,6 +40,12 @@ CREATE TABLE IF NOT EXISTS observation (
   observed_date TEXT,
   price REAL NOT NULL,
   change REAL,
+  native_price REAL,
+  native_unit TEXT,
+  fx_rate REAL,
+  fx_rate_unit TEXT,
+  fx_rate_date TEXT,
+  fx_source TEXT,
   fetched_at TEXT NOT NULL,
   raw TEXT,
   UNIQUE(series_id, week_iso)
@@ -62,6 +68,20 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute(
             "ALTER TABLE series ADD COLUMN category TEXT NOT NULL DEFAULT 'kelteto'"
         )
+    observation_columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(observation)")
+    }
+    optional_columns = {
+        "native_price": "REAL",
+        "native_unit": "TEXT",
+        "fx_rate": "REAL",
+        "fx_rate_unit": "TEXT",
+        "fx_rate_date": "TEXT",
+        "fx_source": "TEXT",
+    }
+    for name, sql_type in optional_columns.items():
+        if name not in observation_columns:
+            conn.execute(f"ALTER TABLE observation ADD COLUMN {name} {sql_type}")
     conn.commit()
 
 
@@ -125,6 +145,12 @@ def upsert_observation(
     observed_date: str | None,
     price: float,
     change: float | None,
+    native_price: float | None,
+    native_unit: str | None,
+    fx_rate: float | None,
+    fx_rate_unit: str | None,
+    fx_rate_date: str | None,
+    fx_source: str | None,
     fetched_at: str,
     raw: Any,
 ) -> None:
@@ -132,17 +158,29 @@ def upsert_observation(
     conn.execute(
         """
         INSERT INTO observation (
-          series_id, week_iso, observed_date, price, change, fetched_at, raw
+          series_id, week_iso, observed_date, price, change,
+          native_price, native_unit, fx_rate, fx_rate_unit, fx_rate_date, fx_source,
+          fetched_at, raw
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(series_id, week_iso) DO UPDATE SET
           observed_date = excluded.observed_date,
           price = excluded.price,
           change = excluded.change,
+          native_price = excluded.native_price,
+          native_unit = excluded.native_unit,
+          fx_rate = excluded.fx_rate,
+          fx_rate_unit = excluded.fx_rate_unit,
+          fx_rate_date = excluded.fx_rate_date,
+          fx_source = excluded.fx_source,
           fetched_at = excluded.fetched_at,
           raw = excluded.raw
         """,
-        (series_id, week_iso, observed_date, price, change, fetched_at, raw_json),
+        (
+            series_id, week_iso, observed_date, price, change,
+            native_price, native_unit, fx_rate, fx_rate_unit, fx_rate_date, fx_source,
+            fetched_at, raw_json,
+        ),
     )
 
 
@@ -172,6 +210,12 @@ def store_observations(
                 observed_date=obs.get("observed_date"),
                 price=float(obs["price"]),
                 change=obs.get("change"),
+                native_price=obs.get("native_price"),
+                native_unit=obs.get("native_unit"),
+                fx_rate=obs.get("fx_rate"),
+                fx_rate_unit=obs.get("fx_rate_unit"),
+                fx_rate_date=obs.get("fx_rate_date"),
+                fx_source=obs.get("fx_source"),
                 fetched_at=obs["fetched_at"],
                 raw=obs,
             )
@@ -191,7 +235,9 @@ def export_data_json(
             SELECT
               s.id AS series_id,
               s.key, s.label, s.country, s.category, s.size, s.color, s.unit,
-              o.week_iso, o.observed_date, o.price, o.change
+              o.week_iso, o.observed_date, o.price, o.change,
+              o.native_price, o.native_unit, o.fx_rate, o.fx_rate_unit,
+              o.fx_rate_date, o.fx_source
             FROM series s
             JOIN observation o ON o.series_id = s.id
             ORDER BY s.category, s.key, s.size, s.color, o.week_iso
@@ -223,14 +269,23 @@ def export_data_json(
             },
         )
         series_categories[row["series_id"]] = row["category"]
-        entry["points"].append(
-            {
-                "week": row["week_iso"],
-                "date": row["observed_date"],
-                "price": row["price"],
-                "change": row["change"],
-            }
-        )
+        point = {
+            "week": row["week_iso"],
+            "date": row["observed_date"],
+            "price": row["price"],
+            "change": row["change"],
+        }
+        for field in (
+            "native_price",
+            "native_unit",
+            "fx_rate",
+            "fx_rate_unit",
+            "fx_rate_date",
+            "fx_source",
+        ):
+            if row[field] is not None:
+                point[field] = row[field]
+        entry["points"].append(point)
 
     categories = []
     for category_key, config in CATEGORY_CONFIG.items():
@@ -250,7 +305,7 @@ def export_data_json(
 
     payload = {
         "generated_at": datetime.now(ZoneInfo("Europe/Bucharest")).isoformat(timespec="seconds"),
-        "schema_version": "0.3",
+        "schema_version": "0.4",
         "categories": categories,
     }
     tmp = output_path.with_suffix(output_path.suffix + ".tmp")
