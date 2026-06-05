@@ -142,13 +142,17 @@ const PALETTE=["#F25623","#19c37d","#3b9dff","#ffb020","#ff5470","#9b6bff","#16c
 const CAT_DESC={
   kelteto:"Keltető tojás (broedei) — amit kiköltetnek, abból lesz napos csibe. Ez a fő nézet.",
   ipari:"Ipari/feldolgozói tojás — ömlesztve az élelmiszeriparnak (folyékony tojás, tojáspor). Ár €/kg-ban.",
-  etkezesi:"Étkezési/fogyasztói tojás — a boltban héjasan kapható tojás noteringjai."
+  etkezesi:"Étkezési/fogyasztói tojás — a boltban héjasan kapható tojás noteringjai.",
+  napos_csibe:"Napos csibe (lengyel piac) — eredeti PLN/db ár, napi ECB árfolyammal EUR/db-re átváltva. Aktuális héttől gyűlik (historikus archív nincs).",
+  broiler:"Broiler — EU-szintű heti vágott test (65%) eladási ár, EUR/100kg (forrás: agridata.ec.europa.eu)."
 };
 const $=s=>document.querySelector(s);
 const ICONS={
   egg:'<path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12"/>',
   factory:'<path d="M12 16h.01"/><path d="M16 16h.01"/><path d="M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a.5.5 0 0 0-.769-.422l-4.462 2.844A.5.5 0 0 1 15 10.5v-2a.5.5 0 0 0-.769-.422L9.77 10.922A.5.5 0 0 1 9 10.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M8 16h.01"/>',
-  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>'
+  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  bird:'<path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/>',
+  drumstick:'<path d="M15.4 15.63a7.875 6 135 1 1 6.23-6.23 4.5 3.43 135 0 0-6.23 6.23"/><path d="m8.29 12.71-2.6 2.6a2.5 2.5 0 1 0-1.65 4.65A2.5 2.5 0 1 0 8.7 18.3l2.59-2.59"/>'
 };
 const ico=(n,s=18)=>`<svg class="ic" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
 let DATA=null, CATS=[], CAT=null, UNIT=null, RANGE=52, SEL=new Set(), EXPANDED=new Set(), colorMap={};
@@ -179,7 +183,7 @@ function buildTabs(){
   const host=$("#tabs"); host.innerHTML="";
   CATS.forEach(c=>{
     const b=document.createElement("button");
-    const iconName = c.key==="kelteto"?"egg":c.key==="ipari"?"factory":c.key==="etkezesi"?"cart":"egg";
+    const iconName = c.key==="kelteto"?"egg":c.key==="ipari"?"factory":c.key==="etkezesi"?"cart":c.key==="napos_csibe"?"bird":c.key==="broiler"?"drumstick":"egg";
     b.innerHTML=`${ico(iconName,17)}<span>${c.label}</span><span class="ct">${(c.series||[]).length}</span>`;
     b.onclick=()=>selectCategory(c.key);
     b.dataset.k=c.key;
