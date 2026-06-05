@@ -9,9 +9,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 try:
-    from .sources import EXPORT_UNIT
+    from .sources import CATEGORY_CONFIG, EXPORT_UNIT
 except ImportError:  # direct script execution
-    from sources import EXPORT_UNIT
+    from sources import CATEGORY_CONFIG, EXPORT_UNIT
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS series (
   key TEXT NOT NULL,
   label TEXT NOT NULL,
   country TEXT,
+  category TEXT NOT NULL DEFAULT 'kelteto',
   size TEXT,
   color TEXT,
   unit TEXT DEFAULT 'EUR/100',
@@ -56,6 +57,11 @@ def connect(db_path: Path = DB_PATH) -> sqlite3.Connection:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(series)")}
+    if "category" not in columns:
+        conn.execute(
+            "ALTER TABLE series ADD COLUMN category TEXT NOT NULL DEFAULT 'kelteto'"
+        )
     conn.commit()
 
 
@@ -73,6 +79,7 @@ def get_or_create_series(
     key: str,
     label: str,
     country: str,
+    category: str,
     size: str | None,
     color: str | None,
     unit: str,
@@ -91,19 +98,21 @@ def get_or_create_series(
         conn.execute(
             """
             UPDATE series
-            SET label = ?, country = ?, unit = ?, source_url = ?
+            SET label = ?, country = ?, category = ?, unit = ?, source_url = ?
             WHERE id = ?
             """,
-            (label, country, unit, source_url, row["id"]),
+            (label, country, category, unit, source_url, row["id"]),
         )
         return int(row["id"])
 
     cur = conn.execute(
         """
-        INSERT INTO series (key, label, country, size, color, unit, source_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO series (
+          key, label, country, category, size, color, unit, source_url
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (key, label, country, size, color, unit, source_url),
+        (key, label, country, category, size, color, unit, source_url),
     )
     return int(cur.lastrowid)
 
@@ -150,6 +159,7 @@ def store_observations(
                 key=obs["key"],
                 label=obs["label"],
                 country=obs.get("country"),
+                category=obs["category"],
                 size=obs.get("size"),
                 color=obs.get("color"),
                 unit=obs.get("unit") or EXPORT_UNIT,
@@ -173,7 +183,6 @@ def store_observations(
 def export_data_json(
     db_path: Path = DB_PATH,
     output_path: Path = EXPORT_PATH,
-    export_unit: str = EXPORT_UNIT,
 ) -> dict[str, Any]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with connect(db_path) as conn:
@@ -181,15 +190,16 @@ def export_data_json(
             """
             SELECT
               s.id AS series_id,
-              s.key, s.label, s.country, s.size, s.color, s.unit,
+              s.key, s.label, s.country, s.category, s.size, s.color, s.unit,
               o.week_iso, o.observed_date, o.price, o.change
             FROM series s
             JOIN observation o ON o.series_id = s.id
-            ORDER BY s.key, s.size, s.color, o.week_iso
+            ORDER BY s.category, s.key, s.size, s.color, o.week_iso
             """,
         ).fetchall()
 
     series_map: dict[int, dict[str, Any]] = {}
+    series_categories: dict[int, str] = {}
     for row in rows:
         size = row["size"]
         color = row["color"]
@@ -212,6 +222,7 @@ def export_data_json(
                 "points": [],
             },
         )
+        series_categories[row["series_id"]] = row["category"]
         entry["points"].append(
             {
                 "week": row["week_iso"],
@@ -221,10 +232,26 @@ def export_data_json(
             }
         )
 
+    categories = []
+    for category_key, config in CATEGORY_CONFIG.items():
+        category_series = [
+            series
+            for series_id, series in series_map.items()
+            if series_categories[series_id] == category_key
+        ]
+        categories.append(
+            {
+                "key": category_key,
+                "label": config["label"],
+                "default_unit": config["default_unit"],
+                "series": category_series,
+            }
+        )
+
     payload = {
         "generated_at": datetime.now(ZoneInfo("Europe/Bucharest")).isoformat(timespec="seconds"),
-        "default_unit": export_unit,
-        "series": list(series_map.values()),
+        "schema_version": "0.3",
+        "categories": categories,
     }
     tmp = output_path.with_suffix(output_path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -236,7 +263,8 @@ def main() -> int:
     with connect(DB_PATH) as conn:
         init_db(conn)
     payload = export_data_json(DB_PATH, EXPORT_PATH)
-    print(f"exported {len(payload['series'])} series to {EXPORT_PATH}")
+    count = sum(len(category["series"]) for category in payload["categories"])
+    print(f"exported {count} series in {len(payload['categories'])} categories to {EXPORT_PATH}")
     return 0
 
 

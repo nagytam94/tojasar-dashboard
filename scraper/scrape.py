@@ -262,7 +262,7 @@ def series_label(source: Source, size: str | None, color: str | None, unit: str)
         label_size = f"per kg {size.removeprefix('kg_')}"
     suffix = " ".join(part for part in [label_size, color] if part)
     label = source.label if not suffix else f"{source.label} — {suffix}"
-    if unit != EXPORT_UNIT:
+    if unit != source.default_unit:
         label = f"{label} [{unit}]"
     return label
 
@@ -331,6 +331,7 @@ def observations_from_chart(
                     "key": source.key,
                     "label": series_label(source, size, color, unit),
                     "country": source.country,
+                    "category": source.category,
                     "size": size,
                     "color": color,
                     "unit": unit,
@@ -369,6 +370,7 @@ def observations_from_current(
                 "key": source.key,
                 "label": series_label(source, size, color, unit),
                 "country": source.country,
+                "category": source.category,
                 "size": size,
                 "color": color,
                 "unit": unit,
@@ -436,24 +438,31 @@ def main(argv: list[str] | None = None) -> int:
     session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"})
 
     all_observations: list[dict[str, Any]] = []
+    failures: list[str] = []
     for source in get_sources(args.sources):
         try:
             observations = scrape_source(session, source)
+            if not observations:
+                failures.append(f"{source.key}: no observations parsed")
             all_observations.extend(observations)
             print(f"{source.key}: parsed {len(observations)} observations")
         except Exception as exc:
             warn(f"{source.key}: scrape failed: {exc}")
+            failures.append(f"{source.key}: {exc}")
         time.sleep(REQUEST_DELAY_SECONDS)
 
-    if not all_observations:
-        warn("no observations parsed")
+    if failures:
+        for failure in failures:
+            warn(f"source failure: {failure}")
+        warn("refusing partial export")
         return 1
 
     stored = store_observations(all_observations, args.db)
     print(f"stored/upserted {stored} observations in {args.db}")
     if not args.no_export:
         payload = export_data_json(args.db, args.out)
-        print(f"exported {len(payload['series'])} series with per-series units to {args.out}")
+        count = sum(len(category["series"]) for category in payload["categories"])
+        print(f"exported {count} series in {len(payload['categories'])} categories to {args.out}")
     return 0
 
 
