@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🥚 Heti Tojásár Dashboard</title>
+<title>Heti Tojásár Dashboard</title>
 <style>
   :root{
     --bg:#171717; --panel:#1e1e1e; --panel2:#262626; --line:#4D4D4D;
@@ -15,12 +15,23 @@
     font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
   header{padding:22px 26px 14px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#111111,transparent)}
-  h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.2px}
+  h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
   h1 .dot{color:var(--accent)}
+  .ic{display:inline-block;flex:none;vertical-align:middle}
+  .brand{color:var(--accent);display:inline-flex;align-items:center}
   .sub{color:var(--muted);font-size:12.5px;margin-top:5px}
   .sub b{color:var(--txt);font-weight:600}
-  .wrap{display:grid;grid-template-columns:268px 1fr;gap:18px;padding:18px 22px;align-items:start}
-  @media(max-width:880px){.wrap{grid-template-columns:1fr}}
+  .tabs{display:flex;gap:8px;padding:14px 22px 0;flex-wrap:wrap}
+  .tabs button{display:flex;align-items:center;gap:8px;background:var(--panel);color:var(--muted);
+    border:1px solid var(--line);border-radius:11px;padding:10px 18px;font-size:14px;font-weight:600;
+    cursor:pointer;transition:.14s;white-space:nowrap;flex:none}
+  .tabs button:hover{color:var(--txt);border-color:#5a5a5a}
+  .tabs button.active{background:var(--accent);color:#171717;border-color:var(--accent)}
+  .tabs button .ct{font-size:11px;opacity:.72;font-weight:600;font-variant-numeric:tabular-nums}
+  .tabs button.active .ct{opacity:.85}
+  .tabdesc{color:var(--muted);font-size:12.5px;padding:9px 24px 0}
+  .wrap{display:grid;grid-template-columns:268px 1fr;gap:18px;padding:14px 22px 18px;align-items:start}
+  @media(max-width:880px){.wrap{grid-template-columns:1fr}.wrap aside{order:2}.wrap main{order:1}}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
   .panel h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
   .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
@@ -38,6 +49,10 @@
   .opt input{accent-color:var(--accent);width:14px;height:14px}
   .opt .sw{width:11px;height:11px;border-radius:3px;flex:none}
   .opt.sel{color:var(--txt)}
+  #groups{max-height:44vh;overflow-y:auto;overflow-x:hidden}
+  #groups::-webkit-scrollbar{width:8px}
+  #groups::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:8px}
+  .grp .gh .caret{font-size:10px;color:var(--muted);transition:.12s;margin-left:4px}
   .chartbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 10px 6px}
   .chart-head{display:flex;align-items:baseline;gap:10px;padding:2px 8px 10px}
   .chart-head .t{font-weight:600}
@@ -49,9 +64,9 @@
   .ser{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
   .dotpt{stroke:#171717;stroke-width:1.5}
   .hover-line{stroke:#6a7280;stroke-width:1;stroke-dasharray:3 3}
-  .tip{position:fixed;pointer-events:none;background:#171717ee;border:1px solid #4D4D4D;
+  .tip{position:fixed;pointer-events:none;background:#1c1c1cf7;border:1px solid #4D4D4D;
     border-radius:10px;padding:9px 11px;font-size:12px;z-index:50;min-width:170px;
-    box-shadow:0 8px 30px #000a;backdrop-filter:blur(6px);display:none}
+    box-shadow:0 6px 18px #0008;display:none}
   .tip .tw{color:var(--muted);margin-bottom:6px;font-size:11px}
   .tip .row{display:flex;align-items:center;gap:7px;margin:2px 0}
   .tip .row .sw{width:9px;height:9px;border-radius:2px;flex:none}
@@ -66,6 +81,7 @@
   .card .ch{font-size:12px;font-variant-numeric:tabular-nums;margin-top:2px}
   .ch.u{color:var(--up)} .ch.d{color:var(--down)} .ch.n{color:var(--muted)}
   .empty{color:var(--muted);text-align:center;padding:60px 0}
+  .empty b{color:var(--txt)}
   .foot{color:var(--muted);font-size:11.5px;padding:16px 26px 26px;border-top:1px solid #3a3a3a}
   .mockwarn{background:#3a2410;border:1px solid #6b4310;color:#f0b24a;border-radius:10px;
     padding:8px 12px;margin:12px 22px 0;font-size:12.5px;display:none}
@@ -73,10 +89,13 @@
 </head>
 <body>
 <header>
-  <h1>🥚 Heti Tojásár <span class="dot">Dashboard</span></h1>
+  <h1><span class="brand"><svg class="ic" style="width:26px;height:26px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg></span>Heti Tojásár <span class="dot">Dashboard</span></h1>
   <div class="sub" id="sub">Betöltés…</div>
 </header>
-<div class="mockwarn" id="mockwarn">⚠️ MOCK adat van betöltve — a valós scraper még nem írta felül a data.json-t.</div>
+<div class="mockwarn" id="mockwarn"><svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> MOCK adat van betöltve — a valós scraper még nem írta felül a data.json-t.</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="tabdesc" id="tabdesc"></div>
 
 <div class="wrap">
   <aside class="panel">
@@ -115,20 +134,26 @@
   </main>
 </div>
 <div class="tip" id="tip"></div>
-<div class="foot">Forrás: pluimveebeurs.com (heti noteringok) · adat: <span id="genat">—</span> · auto-frissül naponta 08:00-kor · Cloudus × Turing × Kepes</div>
+<div class="foot">Forrás: pluimveebeurs.com (heti noteringok) · adat: <span id="genat">—</span> · auto-frissül naponta 08:00-kor · Cloudus × Turing × Humboldt</div>
 
 <script>
 const PALETTE=["#F25623","#19c37d","#3b9dff","#ffb020","#ff5470","#9b6bff","#16c8c8","#e8e85a",
   "#ff8a3d","#5ad1a0","#d05ce3","#62b6ff","#7ee787","#f78fb3","#b0bec5"];
+const CAT_DESC={
+  kelteto:"Keltető tojás (broedei) — amit kiköltetnek, abból lesz napos csibe. Ez a fő nézet.",
+  ipari:"Ipari/feldolgozói tojás — ömlesztve az élelmiszeriparnak (folyékony tojás, tojáspor). Ár €/kg-ban.",
+  etkezesi:"Étkezési/fogyasztói tojás — a boltban héjasan kapható tojás noteringjai."
+};
 const $=s=>document.querySelector(s);
-let DATA=null, UNIT=null, RANGE=52, SEL=new Set(), colorMap={};
+const ICONS={
+  egg:'<path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12"/>',
+  factory:'<path d="M12 16h.01"/><path d="M16 16h.01"/><path d="M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a.5.5 0 0 0-.769-.422l-4.462 2.844A.5.5 0 0 1 15 10.5v-2a.5.5 0 0 0-.769-.422L9.77 10.922A.5.5 0 0 1 9 10.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M8 16h.01"/>',
+  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>'
+};
+const ico=(n,s=18)=>`<svg class="ic" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
+let DATA=null, CATS=[], CAT=null, UNIT=null, RANGE=52, SEL=new Set(), EXPANDED=new Set(), colorMap={};
 
-function fmt(n,u){ if(n==null)return"–"; return (u==="EUR/kg")? n.toFixed(2): n.toFixed(2); }
 const fmtPrice = n => n==null?'–':String(Math.round(n*10000)/10000);
-function groupBase(s){ // group key: notering + unit dimension
-  return s.label.split("—")[0].trim() + (s.unit==="EUR/kg" && !/kg/i.test(s.label.split("—")[0])?"":"");
-}
-function notBase(s){ return s.key.split("__")[0] + "|" + s.unit; }
 
 async function load(){
   let d;
@@ -136,17 +161,54 @@ async function load(){
   catch(e){ $("#sub").textContent="❌ data.json nem tölthető. Indítsd HTTP szerverrel (pl. python3 -m http.server a dashboard/ mappában)."; return; }
   DATA=d;
   if(d._mock) $("#mockwarn").style.display="block";
-  // weeks universe (sorted unique)
-  const units=[...new Set(d.series.map(s=>s.unit))];
-  UNIT=units.includes(d.default_unit||"EUR/100")?(d.default_unit||"EUR/100"):units[0];
-  // color assignment per series key (stable)
-  d.series.forEach((s,i)=> colorMap[s.key]=PALETTE[i%PALETTE.length]);
+  // backward-compat: v0.2 flat {series} -> single pseudo-category
+  CATS = d.categories || [{key:"all", label:"Összes", default_unit:d.default_unit||"EUR/100", series:d.series||[]}];
+  // stable color assignment, fresh palette spread per category
+  CATS.forEach(c => (c.series||[]).forEach((s,i)=> colorMap[s.key]=PALETTE[i%PALETTE.length]));
   const gen=new Date(d.generated_at);
-  const allw=[...new Set(d.series.flatMap(s=>s.points.map(p=>p.week)))].sort();
-  $("#genat").textContent=isNaN(gen)?d.generated_at:gen.toLocaleString("hu-HU");
-  $("#sub").innerHTML=`<b>${d.series.length}</b> ársor · <b>${allw.length}</b> hét (${allw[0]} → ${allw[allw.length-1]}) · egységek: <b>${units.join(", ")}</b>`;
-  buildUnitSeg(units);
+  $("#genat").textContent=isNaN(gen)?(d.generated_at||"—"):gen.toLocaleString("hu-HU");
+  buildTabs();
   buildRange();
+  selectCategory(CATS[0].key);
+}
+
+function curCat(){ return CATS.find(c=>c.key===CAT) || CATS[0]; }
+function catSeries(){ return curCat().series || []; }
+
+function buildTabs(){
+  const host=$("#tabs"); host.innerHTML="";
+  CATS.forEach(c=>{
+    const b=document.createElement("button");
+    const iconName = c.key==="kelteto"?"egg":c.key==="ipari"?"factory":c.key==="etkezesi"?"cart":"egg";
+    b.innerHTML=`${ico(iconName,17)}<span>${c.label}</span><span class="ct">${(c.series||[]).length}</span>`;
+    b.onclick=()=>selectCategory(c.key);
+    b.dataset.k=c.key;
+    host.appendChild(b);
+  });
+}
+
+function selectCategory(key){
+  CAT=key;
+  const tip=$("#tip"); if(tip)tip.style.display="none";
+  EXPANDED=new Set();
+  [...$("#tabs").children].forEach(b=>b.classList.toggle("active",b.dataset.k===key));
+  $("#tabdesc").textContent=CAT_DESC[key]||"";
+  const c=curCat();
+  const series=c.series||[];
+  const units=[...new Set(series.map(s=>s.unit))];
+  if(!series.length || !units.length){
+    UNIT=c.default_unit||"—";
+    $("#sub").innerHTML=`<b>${c.label}</b> — a scraper még nem szedte le ezt az adatot.`;
+    $("#unitSeg").innerHTML=""; $("#groups").innerHTML="";
+    $("#chUnit").textContent=UNIT;
+    $("#chart").innerHTML=`<div class="empty"><b>${c.label}</b><br>Ezt az adatot a scraper még nem szedte le.</div>`;
+    $("#cards").innerHTML="";
+    return;
+  }
+  UNIT = units.includes(c.default_unit) ? c.default_unit : units[0];
+  const allw=[...new Set(series.flatMap(s=>s.points.map(p=>p.week)))].sort();
+  $("#sub").innerHTML=`<b>${c.label}</b> · <b>${series.length}</b> ársor · <b>${allw.length}</b> hét (${allw[0]} → ${allw[allw.length-1]}) · egységek: <b>${units.join(", ")}</b>`;
+  buildUnitSeg(units);
   renderControls();
   defaultSelect();
   draw();
@@ -168,31 +230,43 @@ function buildRange(){
   });
 }
 
-function unitSeries(){ return DATA.series.filter(s=>s.unit===UNIT); }
+function unitSeries(){ return catSeries().filter(s=>s.unit===UNIT); }
 
 function renderControls(){
   const host=$("#groups"); host.innerHTML="";
-  // group by notering-base within unit
   const groups={};
   unitSeries().forEach(s=>{ const k=s.key.split("__")[0]; (groups[k]=groups[k]||[]).push(s); });
   Object.entries(groups).forEach(([gk,arr])=>{
+    const multi=arr.length>1;
     const g=document.createElement("div"); g.className="grp";
     const head=document.createElement("div"); head.className="gh";
     const cb=document.createElement("input"); cb.type="checkbox";
     const title=arr[0].label.split("—")[0].trim();
-    head.innerHTML=`<span class="cc" data-n>${arr.length}</span>`;
-    head.prepend(cb); const lab=document.createElement("span"); lab.textContent=title; head.insertBefore(lab,head.firstChild.nextSibling);
-    cb.onchange=()=>{ arr.forEach(s=> cb.checked?SEL.add(s.key):SEL.delete(s.key)); renderControls(); draw(); };
+    const opts=document.createElement("div"); opts.className="opts";
+    cb.onchange=(e)=>{ e.stopPropagation(); arr.forEach(s=> cb.checked?SEL.add(s.key):SEL.delete(s.key)); renderControls(); draw(); };
+    head.appendChild(cb);
+    if(!multi){ const sw=document.createElement("span"); sw.className="sw"; sw.style.background=colorMap[arr[0].key]; head.appendChild(sw); }
+    const lab=document.createElement("span"); lab.textContent=title; lab.style.flex="1"; head.appendChild(lab);
+    if(multi){
+      const cc=document.createElement("span"); cc.className="cc"; cc.textContent=arr.length; head.appendChild(cc);
+      const caret=document.createElement("span"); caret.className="caret"; caret.textContent=EXPANDED.has(gk)?"▾":"▸"; head.appendChild(caret);
+      head.style.cursor="pointer";
+      head.onclick=(e)=>{ if(e.target===cb)return; EXPANDED.has(gk)?EXPANDED.delete(gk):EXPANDED.add(gk); const open=EXPANDED.has(gk); opts.style.display=open?"block":"none"; caret.textContent=open?"▾":"▸"; };
+    }
     g.appendChild(head);
-    arr.forEach(s=>{
-      const o=document.createElement("label"); o.className="opt"+(SEL.has(s.key)?" sel":"");
-      const i=document.createElement("input"); i.type="checkbox"; i.checked=SEL.has(s.key);
-      i.onchange=()=>{ i.checked?SEL.add(s.key):SEL.delete(s.key); renderControls(); draw(); };
-      const sw=document.createElement("span"); sw.className="sw"; sw.style.background=colorMap[s.key];
-      const nm=document.createElement("span");
-      const sub=s.label.split("—")[1]; nm.textContent=sub?sub.trim():s.label;
-      o.append(i,sw,nm); g.appendChild(o);
-    });
+    opts.style.display=(multi&&!EXPANDED.has(gk))?"none":"block";
+    if(multi){
+      arr.forEach(s=>{
+        const o=document.createElement("label"); o.className="opt"+(SEL.has(s.key)?" sel":"");
+        const i=document.createElement("input"); i.type="checkbox"; i.checked=SEL.has(s.key);
+        i.onchange=()=>{ i.checked?SEL.add(s.key):SEL.delete(s.key); renderControls(); draw(); };
+        const sw=document.createElement("span"); sw.className="sw"; sw.style.background=colorMap[s.key];
+        const nm=document.createElement("span");
+        const sub=s.label.split("—")[1]; nm.textContent=sub?sub.trim():s.label;
+        o.append(i,sw,nm); opts.appendChild(o);
+      });
+      g.appendChild(opts);
+    }
     const anySel=arr.some(s=>SEL.has(s.key)), allSel=arr.every(s=>SEL.has(s.key));
     cb.checked=allSel; cb.indeterminate=anySel&&!allSel;
     host.appendChild(g);
@@ -201,7 +275,6 @@ function renderControls(){
 
 function defaultSelect(){
   SEL=new Set();
-  // one representative line per notering-base: prefer L+wit, else L, else middle
   const groups={};
   unitSeries().forEach(s=>{ const k=s.key.split("__")[0]; (groups[k]=groups[k]||[]).push(s); });
   Object.values(groups).forEach(arr=>{
@@ -221,7 +294,6 @@ function draw(){
   const m={l:54,r:18,t:14,b:42};
   $("#chUnit").textContent=UNIT;
   const series=unitSeries().filter(s=>SEL.has(s.key));
-  // global week axis (union across selected, sorted)
   let weeks=[...new Set(series.flatMap(s=>s.points.map(p=>p.week)))].sort();
   if(RANGE>0) weeks=weeks.slice(-RANGE);
   $("#chRange").textContent=weeks.length?`${weeks[0]} – ${weeks[weeks.length-1]} · ${weeks.length} hét`:"";
@@ -230,32 +302,27 @@ function draw(){
     $("#cards").innerHTML=""; return;
   }
   const wIdx=new Map(weeks.map((w,i)=>[w,i]));
-  // value range
   let lo=Infinity,hi=-Infinity;
   series.forEach(s=>s.points.forEach(p=>{ if(wIdx.has(p.week)&&p.price!=null){ lo=Math.min(lo,p.price);hi=Math.max(hi,p.price);} }));
   if(lo===Infinity){lo=0;hi=1;}
   const pad=(hi-lo)*0.12||1; lo-=pad; hi+=pad;
   const X=i=> m.l + (weeks.length<=1? (W-m.l-m.r)/2 : i*(W-m.l-m.r)/(weeks.length-1));
   const Y=v=> m.t + (1-(v-lo)/(hi-lo))*(H-m.t-m.b);
-  // gridlines (5)
   let svg=`<svg viewBox="0 0 ${W} ${H}" id="svg">`;
   const ticks=5;
   for(let t=0;t<=ticks;t++){ const v=lo+(hi-lo)*t/ticks; const y=Y(v);
     svg+=`<line class="gridln" x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}"/>`;
     svg+=`<text class="axis" x="${m.l-8}" y="${y+3}" text-anchor="end">${v.toFixed(2)}</text>`;
   }
-  // x labels (~8)
   const step=Math.max(1,Math.ceil(weeks.length/8));
   weeks.forEach((w,i)=>{ if(i%step===0||i===weeks.length-1){ const x=X(i);
     svg+=`<text class="axis" x="${x}" y="${H-m.b+18}" text-anchor="middle">${w.replace("2026-","").replace("2025-","'25 ")}</text>`; }});
-  // series paths
   series.forEach(s=>{
     const pm=new Map(s.points.map(p=>[p.week,p.price]));
     let d="",started=false;
     weeks.forEach((w,i)=>{ const v=pm.get(w); if(v==null){started=false;return;}
       d+=(started?"L":"M")+X(i)+" "+Y(v)+" "; started=true; });
     svg+=`<path class="ser" d="${d}" stroke="${colorMap[s.key]}"/>`;
-    // last point dot
     for(let i=weeks.length-1;i>=0;i--){ const v=pm.get(weeks[i]); if(v!=null){
       svg+=`<circle class="dotpt" cx="${X(i)}" cy="${Y(v)}" r="4" fill="${colorMap[s.key]}"/>`; break; } }
   });
@@ -263,26 +330,30 @@ function draw(){
   svg+=`<rect id="cap" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/>`;
   svg+=`</svg>`;
   box.innerHTML=svg;
-  // hover
   const cap=$("#cap"),hl=$("#hl"),tip=$("#tip");
-  cap.addEventListener("mousemove",e=>{
-    const r=$("#svg").getBoundingClientRect(); const sx=(e.clientX-r.left)*(W/r.width);
-    let i=Math.round((sx-m.l)/((W-m.l-m.r)/Math.max(1,weeks.length-1))); i=Math.max(0,Math.min(weeks.length-1,i));
-    const xx=X(i); hl.setAttribute("x1",xx);hl.setAttribute("x2",xx);hl.style.opacity=1;
-    const w=weeks[i];
-    let rows="";
-    series.map(s=>({s,p:s.points.find(p=>p.week===w)})).filter(o=>o.p&&o.p.price!=null)
-      .sort((a,b)=>b.p.price-a.p.price).forEach(({s,p})=>{
-        const ch=p.change==null?"":` <span style="color:${p.change>0?'var(--up)':p.change<0?'var(--down)':'var(--muted)'}">${p.change>0?'+':''}${p.change.toFixed(2)}</span>`;
-        rows+=`<div class="row"><span class="sw" style="background:${colorMap[s.key]}"></span><span class="nm">${(s.label.split("—")[1]||s.label).trim()}</span><span class="vl">${fmtPrice(p.price)}${ch}</span></div>`;
-      });
-    const pt=series.map(s=>s.points.find(p=>p.week===w)).find(Boolean);
-    tip.innerHTML=`<div class="tw">${w}${pt&&pt.date?" · "+pt.date:""} · ${UNIT}</div>${rows}`;
-    tip.style.display="block";
-    let tx=e.clientX+16, ty=e.clientY-10;
-    if(tx+220>innerWidth)tx=e.clientX-230; tip.style.left=tx+"px"; tip.style.top=Math.max(8,ty)+"px";
-  });
-  cap.addEventListener("mouseleave",()=>{ hl.style.opacity=0; tip.style.display="none"; });
+  let _raf=0,_ev=null,_svgRect=null;
+  cap.addEventListener("mousemove",e=>{ _ev=e; if(_raf)return;
+    _raf=requestAnimationFrame(()=>{ _raf=0; const e=_ev; if(!e)return;
+      if(!_svgRect)_svgRect=$("#svg").getBoundingClientRect(); const r=_svgRect;
+      const sx=(e.clientX-r.left)*(W/r.width);
+      let i=Math.round((sx-m.l)/((W-m.l-m.r)/Math.max(1,weeks.length-1))); i=Math.max(0,Math.min(weeks.length-1,i));
+      const xx=X(i); hl.setAttribute("x1",xx);hl.setAttribute("x2",xx);hl.style.opacity=1;
+      const w=weeks[i];
+      let rows="";
+      series.map(s=>({s,p:s.points.find(p=>p.week===w)})).filter(o=>o.p&&o.p.price!=null)
+        .sort((a,b)=>b.p.price-a.p.price).forEach(({s,p})=>{
+          const ch=p.change==null?"":` <span style="color:${p.change>0?'var(--up)':p.change<0?'var(--down)':'var(--muted)'}">${p.change>0?'+':''}${p.change.toFixed(2)}</span>`;
+          rows+=`<div class="row"><span class="sw" style="background:${colorMap[s.key]}"></span><span class="nm">${(s.label.split("—")[1]||s.label).trim()}</span><span class="vl">${fmtPrice(p.price)}${ch}</span></div>`;
+        });
+      const pt=series.map(s=>s.points.find(p=>p.week===w)).find(Boolean);
+      tip.innerHTML=`<div class="tw">${w}${pt&&pt.date?" · "+pt.date:""} · ${UNIT}</div>${rows}`;
+      tip.style.display="block";
+      let tx=e.clientX+16, ty=e.clientY-10;
+      if(tx+220>innerWidth)tx=e.clientX-230; tip.style.left=tx+"px"; tip.style.top=Math.max(8,ty)+"px";
+    });
+  },{passive:true});
+  cap.addEventListener("mouseleave",()=>{ if(_raf){cancelAnimationFrame(_raf);_raf=0;} _svgRect=null; hl.style.opacity=0; tip.style.display="none"; });
+  addEventListener("scroll",()=>{ _svgRect=null; },{passive:true});
   drawCards(series,weeks[weeks.length-1]);
 }
 
@@ -300,7 +371,7 @@ function drawCards(series,lastWeek){
     host.appendChild(c);
   });
 }
-addEventListener("resize",()=>{ if(DATA)draw(); });
+let _resizeT; addEventListener("resize",()=>{ clearTimeout(_resizeT); _resizeT=setTimeout(()=>{ if(DATA&&catSeries().length)draw(); },120); });
 load();
 </script>
 </body>
