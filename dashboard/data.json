@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-10T07:30:24+03:00",
+  "generated_at": "2026-06-11T07:30:21+03:00",
   "schema_version": "0.4",
   "categories": [
     {
@@ -15933,9 +15933,9 @@
             {
               "week": "2026-W24",
               "date": "2026-06-08",
-              "price": 0.71895,
+              "price": 0.716592,
               "change": null,
-              "native_price": 3.05,
+              "native_price": 3.04,
               "native_unit": "PLN/db",
               "fx_rate": 4.2423,
               "fx_rate_unit": "PLN/EUR",
