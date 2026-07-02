@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01T07:30:23+03:00",
+  "generated_at": "2026-07-02T07:30:21+03:00",
   "schema_version": "0.4",
   "categories": [
     {
@@ -43,7 +43,7 @@
               "week": "2025-W27",
               "date": "2025-07-02",
               "price": 0.395,
-              "change": -0.015
+              "change": null
             },
             {
               "week": "2025-W28",
@@ -349,7 +349,13 @@
               "week": "2026-W26",
               "date": "2026-06-24",
               "price": 0.335,
-              "change": null
+              "change": 0.0
+            },
+            {
+              "week": "2026-W27",
+              "date": "2026-07-01",
+              "price": 0.345,
+              "change": 0.01
             }
           ]
         },
