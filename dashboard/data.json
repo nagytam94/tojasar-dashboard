@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-13T07:30:21+03:00",
+  "generated_at": "2026-07-14T07:30:20+03:00",
   "schema_version": "0.4",
   "categories": [
     {
@@ -17433,13 +17433,13 @@
             {
               "week": "2026-W29",
               "date": "2026-07-13",
-              "price": 0.699252,
+              "price": 0.703085,
               "change": null,
               "native_price": 3.04,
               "native_unit": "PLN/db",
-              "fx_rate": 4.3475,
+              "fx_rate": 4.3238,
               "fx_rate_unit": "PLN/EUR",
-              "fx_rate_date": "2026-07-10",
+              "fx_rate_date": "2026-07-13",
               "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
             }
           ]
