@@ -36,6 +36,7 @@ PRICE_RE = re.compile(r"€\s*([+-]?\d+(?:[.,]\d+)?)")
 CHANGE_RE = re.compile(r"€\s*[+-]?\d+(?:[.,]\d+)?\s+([+-]\d+(?:[.,]\d+)?)")
 SIZE_TOKENS = {"XL", "L", "M", "S"}
 COLOR_TOKENS = {"wit", "bruin"}
+EU_BROILER_PRODUCT_NAMES = {"Whole broiler (65%)", "0207 11 30"}
 ECB_PLN_SERIES_URL = "https://data-api.ecb.europa.eu/service/data/EXR/D.PLN.EUR.SP00.A"
 CHICK_LINES = (
     ("ross_308", "Ross 308"),
@@ -247,7 +248,7 @@ def scrape_eu_broiler(session: requests.Session, source: Source) -> list[dict[st
     previous: float | None = None
     rows = sorted(response.json(), key=lambda row: datetime.strptime(row["beginDate"], "%d/%m/%Y"))
     for row in rows:
-        if row.get("productName") != "Whole broiler (65%)" or row.get("priceType") != "Selling price":
+        if row.get("productName") not in EU_BROILER_PRODUCT_NAMES or row.get("priceType") != "Selling price":
             continue
         point_date = datetime.strptime(row["beginDate"], "%d/%m/%Y").date()
         price = parse_number(str(row.get("price", "")).replace("€", ""))
