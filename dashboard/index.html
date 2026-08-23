@@ -39,6 +39,10 @@
     border-radius:9px;padding:8px 6px;font-size:12.5px;cursor:pointer;transition:.12s}
   .seg button:hover{color:var(--txt);border-color:#3a414f}
   .seg button.active{background:var(--accent);color:#171717;border-color:var(--accent);font-weight:700}
+  /* Időtáv, amire még nincs elég adat: kattintható marad (a teljes elérhető sort mutatja),
+     de halvány, hogy a felület ne ígérjen többet, mint amennyi adat létezik. */
+  .seg button.dim{opacity:.42}
+  .seg button.dim.active{opacity:.72}
   .blk{margin-bottom:18px}
   .grp{margin-bottom:10px}
   .grp .gh{display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px;color:var(--txt);
@@ -109,9 +113,14 @@
       <div class="seg" id="rangeSeg">
         <button data-r="4">1 hó</button>
         <button data-r="13">3 hó</button>
-        <button data-r="52" class="active">1 év</button>
+        <button data-r="26">6 hó</button>
+        <button data-r="39">9 hó</button>
+        <button data-r="52" class="active">12 hó</button>
+        <button data-r="104">2 év</button>
+        <button data-r="260">5 év</button>
         <button data-r="0">Mind</button>
       </div>
+      <div class="sub" style="font-size:11px" id="rangeNote"></div>
     </div>
     <div class="blk">
       <h2 style="display:flex;justify-content:space-between">Noteringek
@@ -234,6 +243,25 @@ function buildRange(){
   });
 }
 
+// A hosszabb időtávok (2 és 5 év) ma többet ígérnének, mint amennyi adat van: a gyűjtés
+// 2025-W22-ben indult. Ezért a nem lefedett gombok halványak és megmondják, mennyi van —
+// de kattinthatók maradnak (a teljes elérhető sort mutatják). Ahogy telik az idő, maguktól
+// élesednek: a küszöb az ADATBÓL jön, nincs benne dátum bedrótozva.
+function syncRangeButtons(availableWeeks){
+  let short=0;
+  $("#rangeSeg").querySelectorAll("button").forEach(b=>{
+    const need=+b.dataset.r;
+    const dim = need>0 && availableWeeks>0 && availableWeeks<need;
+    b.classList.toggle("dim",dim);
+    if(dim){ short++; b.title=`Ehhez ${need} hét kellene — egyelőre ${availableWeeks} hét adat van.`; }
+    else b.removeAttribute("title");
+  });
+  const note=$("#rangeNote");
+  if(note) note.textContent = short
+    ? `A halvány időtávokhoz még nincs elég adat — a gyűjtés ${availableWeeks} hete tart.`
+    : "";
+}
+
 function unitSeries(){ return catSeries().filter(s=>s.unit===UNIT); }
 
 function renderControls(){
@@ -298,6 +326,9 @@ function draw(){
   const m={l:54,r:18,t:14,b:42};
   $("#chUnit").textContent=UNIT;
   const series=unitSeries().filter(s=>SEL.has(s.key));
+  // Mennyi történet létezik EGYÁLTALÁN ebben a nézetben — ehhez halványítjuk azokat az
+  // időtávokat, amelyekre még nem gyűlt össze elég hét (a scraper 2025-W22 óta gyűjt).
+  syncRangeButtons(new Set(unitSeries().flatMap(s=>s.points.map(p=>p.week))).size);
   let weeks=[...new Set(series.flatMap(s=>s.points.map(p=>p.week)))].sort();
   if(RANGE>0) weeks=weeks.slice(-RANGE);
   $("#chRange").textContent=weeks.length?`${weeks[0]} – ${weeks[weeks.length-1]} · ${weeks.length} hét`:"";
@@ -318,9 +349,17 @@ function draw(){
     svg+=`<line class="gridln" x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}"/>`;
     svg+=`<text class="axis" x="${m.l-8}" y="${y+3}" text-anchor="end">${v.toFixed(2)}</text>`;
   }
-  const step=Math.max(1,Math.ceil(weeks.length/8));
-  weeks.forEach((w,i)=>{ if(i%step===0||i===weeks.length-1){ const x=X(i);
-    svg+=`<text class="axis" x="${x}" y="${H-m.b+18}" text-anchor="middle">${w.replace("2026-","").replace("2025-","'25 ")}</text>`; }});
+  // X-tengely feliratok. HÁTULRÓL építjük: a legfrissebb hét mindig kikerül, és onnan
+  // lépkedünk visszafelé egyenletes lépéssel — így két felirat sosem eshet egymásra.
+  // (A régi `i%step===0 || i===weeks.length-1` az utolsót akkor is kirakta, ha az előző
+  //  tick közvetlenül mellette volt: 52 hétnél a W49 és a W34 egymásra ült.)
+  const wkLabel=w=>w.replace("2026-","").replace("2025-","'25 ");
+  const plotW=W-m.l-m.r;
+  const labelPx=weeks.some(w=>w.startsWith("2025-"))?52:38;   // az "'25 W42" szélesebb
+  const maxLabels=Math.max(2,Math.floor(plotW/labelPx));
+  const xstep=Math.max(1,Math.ceil((weeks.length-1)/Math.max(1,maxLabels-1)));
+  for(let i=weeks.length-1;i>=0;i-=xstep){ const x=X(i);
+    svg+=`<text class="axis" x="${x}" y="${H-m.b+18}" text-anchor="middle">${wkLabel(weeks[i])}</text>`; }
   series.forEach(s=>{
     const pm=new Map(s.points.map(p=>[p.week,p.price]));
     let d="",started=false;
