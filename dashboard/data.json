@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T14:54:47+03:00",
+  "generated_at": "2026-08-24T07:30:22+03:00",
   "schema_version": "0.4",
   "categories": [
     {
@@ -19181,6 +19181,18 @@
               "fx_rate_unit": "PLN/EUR",
               "fx_rate_date": "2026-08-17",
               "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
+            },
+            {
+              "week": "2026-W35",
+              "date": "2026-08-24",
+              "price": 0.708018,
+              "change": null,
+              "native_price": 3.05,
+              "native_unit": "PLN/db",
+              "fx_rate": 4.3078,
+              "fx_rate_unit": "PLN/EUR",
+              "fx_rate_date": "2026-08-21",
+              "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
             }
           ]
         }
@@ -19275,7 +19287,7 @@
               "week": "2025-W35",
               "date": "2025-08-25",
               "price": 301.59,
-              "change": 0.57
+              "change": null
             },
             {
               "week": "2025-W36",
