@@ -1,6 +1,12 @@
 {
-  "generated_at": "2026-09-13T07:30:21+03:00",
-  "schema_version": "0.4",
+  "generated_at": "2026-09-14T08:41:23+03:00",
+  "schema_version": "0.5",
+  "freshness": {
+    "as_of": "2026-09-14",
+    "stale_after_days": 14,
+    "series_total": 50,
+    "series_stale": []
+  },
   "categories": [
     {
       "key": "kelteto",
@@ -417,7 +423,9 @@
               "price": 0.355,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-09",
+          "days_since_update": 5
         },
         {
           "key": "broederijnotering_lto_nop_nvp",
@@ -829,7 +837,9 @@
               "price": 0.3379,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         }
       ]
     },
@@ -1254,7 +1264,9 @@
               "price": 1.503,
               "change": 0.02
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "rungis_paris_industrie",
@@ -1666,7 +1678,9 @@
               "price": 1.55,
               "change": 0.06
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "weser_ems_verarbeitung",
@@ -2084,7 +2098,9 @@
               "price": 1.45,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_verarbeitung_boden",
@@ -2502,7 +2518,9 @@
               "price": 1.9,
               "change": 0.05
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         }
       ]
     },
@@ -2921,7 +2939,9 @@
               "price": 7.3,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__54",
@@ -3333,7 +3353,9 @@
               "price": 9.35,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__57",
@@ -3745,7 +3767,9 @@
               "price": 10.05,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__59",
@@ -4157,7 +4181,9 @@
               "price": 10.55,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__61",
@@ -4569,7 +4595,9 @@
               "price": 10.9,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__64",
@@ -4981,7 +5009,9 @@
               "price": 11.6,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__67",
@@ -5393,7 +5423,9 @@
               "price": 12.5,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_48",
@@ -5805,7 +5837,9 @@
               "price": 1.52,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_54",
@@ -6217,7 +6251,9 @@
               "price": 1.73,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_57",
@@ -6629,7 +6665,9 @@
               "price": 1.76,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_59",
@@ -7041,7 +7079,9 @@
               "price": 1.79,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_61",
@@ -7453,7 +7493,9 @@
               "price": 1.79,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_64",
@@ -7865,7 +7907,9 @@
               "price": 1.81,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "barneveldse__kg_67",
@@ -8277,7 +8321,9 @@
               "price": 1.87,
               "change": null
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "kruisem__L__bruin",
@@ -8689,7 +8735,9 @@
               "price": 11.91,
               "change": 0.13
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__L__wit",
@@ -9101,7 +9149,9 @@
               "price": 11.41,
               "change": 0.13
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__M__bruin",
@@ -9513,7 +9563,9 @@
               "price": 10.88,
               "change": 0.12
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__M__wit",
@@ -9925,7 +9977,9 @@
               "price": 9.93,
               "change": 0.12
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__S__bruin",
@@ -10337,7 +10391,9 @@
               "price": 8.24,
               "change": 0.09
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__S__wit",
@@ -10749,7 +10805,9 @@
               "price": 7.94,
               "change": 0.09
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__XL__bruin",
@@ -11161,7 +11219,9 @@
               "price": 13.69,
               "change": 0.14
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "kruisem__XL__wit",
@@ -11573,7 +11633,9 @@
               "price": 13.19,
               "change": 0.14
             }
-          ]
+          ],
+          "updated_through": "2026-09-08",
+          "days_since_update": 6
         },
         {
           "key": "rungis__L",
@@ -11979,7 +12041,9 @@
               "price": 16.5,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "rungis__M",
@@ -12385,7 +12449,9 @@
               "price": 14.45,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "rungis__S",
@@ -12791,7 +12857,9 @@
               "price": 12.05,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "rungis__XL",
@@ -13197,7 +13265,9 @@
               "price": 17.6,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-10",
+          "days_since_update": 4
         },
         {
           "key": "weser_ems_boden__L__bruin",
@@ -13615,7 +13685,9 @@
               "price": 15.5,
               "change": 0.25
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__L__wit",
@@ -14033,7 +14105,9 @@
               "price": 14.85,
               "change": 0.25
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__M__bruin",
@@ -14451,7 +14525,9 @@
               "price": 13.2,
               "change": 0.3
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__M__wit",
@@ -14869,7 +14945,9 @@
               "price": 12.75,
               "change": 0.25
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__S__bruin",
@@ -15287,7 +15365,9 @@
               "price": 11.6,
               "change": 0.2
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__S__wit",
@@ -15705,7 +15785,9 @@
               "price": 11.4,
               "change": 0.2
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__XL__bruin",
@@ -16123,7 +16205,9 @@
               "price": 28.2,
               "change": 0.2
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_boden__XL__wit",
@@ -16541,7 +16625,9 @@
               "price": 28.0,
               "change": 0.2
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__L__bruin",
@@ -16959,7 +17045,9 @@
               "price": 12.25,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__L__wit",
@@ -17377,7 +17465,9 @@
               "price": 12.3,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__M__bruin",
@@ -17795,7 +17885,9 @@
               "price": 10.7,
               "change": 0.1
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__M__wit",
@@ -18213,7 +18305,9 @@
               "price": 10.75,
               "change": 0.25
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__S__bruin",
@@ -18631,7 +18725,9 @@
               "price": 9.08,
               "change": -0.62
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__S__wit",
@@ -19049,7 +19145,9 @@
               "price": 9.15,
               "change": 0.15
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__XL__bruin",
@@ -19467,7 +19565,9 @@
               "price": 22.2,
               "change": 0.2
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         },
         {
           "key": "weser_ems_konv__XL__wit",
@@ -19885,7 +19985,9 @@
               "price": 22.25,
               "change": 0.25
             }
-          ]
+          ],
+          "updated_through": "2026-09-11",
+          "days_since_update": 3
         }
       ]
     },
@@ -20081,8 +20183,22 @@
               "fx_rate_unit": "PLN/EUR",
               "fx_rate_date": "2026-09-07",
               "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
+            },
+            {
+              "week": "2026-W38",
+              "date": "2026-09-14",
+              "price": 0.70289,
+              "change": null,
+              "native_price": 3.04,
+              "native_unit": "PLN/db",
+              "fx_rate": 4.325,
+              "fx_rate_unit": "PLN/EUR",
+              "fx_rate_date": "2026-09-11",
+              "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
             }
-          ]
+          ],
+          "updated_through": "2026-09-14",
+          "days_since_update": 0
         }
       ]
     },
@@ -20495,7 +20611,9 @@
               "price": 287.63,
               "change": -1.75
             }
-          ]
+          ],
+          "updated_through": "2026-08-31",
+          "days_since_update": 14
         }
       ]
     }

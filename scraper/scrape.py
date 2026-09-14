@@ -576,6 +576,15 @@ def scrape_source(session: requests.Session, source: Source) -> list[dict[str, A
     return observations
 
 
+# Kilepesi kodok — a run_daily.sh ezekre tamaszkodik.
+#   0 = minden forras rendben
+#   1 = valodi baj, Tomit ertesiteni kell
+#   2 = degradalt: volt forraskieses, de az adat mentve es exportalva; NEM riaszt
+EXIT_OK = 0
+EXIT_ALERT = 1
+EXIT_DEGRADED = 2
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scrape Pluimveebeurs egg prices into SQLite and dashboard/data.json.")
     parser.add_argument("--source", action="append", dest="sources", help="Source key to scrape; repeatable. Defaults to all.")
@@ -590,9 +599,10 @@ def main(argv: list[str] | None = None) -> int:
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"})
 
+    sources = list(get_sources(args.sources))
     all_observations: list[dict[str, Any]] = []
     failures: list[str] = []
-    for source in get_sources(args.sources):
+    for source in sources:
         try:
             observations = scrape_source(session, source)
             if not observations:
@@ -604,19 +614,58 @@ def main(argv: list[str] | None = None) -> int:
             failures.append(f"{source.key}: {exc}")
         time.sleep(REQUEST_DELAY_SECONDS)
 
-    if failures:
-        for failure in failures:
-            warn(f"source failure: {failure}")
-        warn("refusing partial export")
-        return 1
+    # --- GYOKER-JAVITAS 2026-09-14 ---
+    # Korabban itt allt egy "if failures: return 1" kapu a MENTES ELOTT. Emiatt
+    # egyetlen forras kiesese eldobta az OSSZES tobbi forras aznapi adatat is
+    # (merve 2026-09-14: 13-bol 12 forras sikeres, 2755 megfigyeles a kukaba,
+    # a DB-ben aznap 0 sor). Az export amugy is a DB-bol dolgozik, tehat
+    # szerkezetileg soha nem lehetett "reszleges" — a regi "refusing partial
+    # export" uzenet felrevezetett: nem exportot tagadott meg, hanem mentest.
+    # Ezert: eloszor MENTUNK es EXPORTALUNK, a hiba-dontes utana jon.
+    stored = 0
+    if all_observations:
+        stored = store_observations(all_observations, args.db)
+        print(f"stored/upserted {stored} observations in {args.db}")
+    else:
+        warn("no observations from any source - nothing to store")
 
-    stored = store_observations(all_observations, args.db)
-    print(f"stored/upserted {stored} observations in {args.db}")
+    stale: list[dict[str, Any]] = []
     if not args.no_export:
         payload = export_data_json(args.db, args.out)
         count = sum(len(category["series"]) for category in payload["categories"])
         print(f"exported {count} series in {len(payload['categories'])} categories to {args.out}")
-    return 0
+        stale = payload.get("freshness", {}).get("series_stale", [])
+        if stale:
+            print(f"stale series: {len(stale)}")
+
+    if not failures:
+        return EXIT_OK
+
+    for failure in failures:
+        warn(f"source failure: {failure}")
+
+    # Valodi baj: egyetlen forras sem adott adatot.
+    if not all_observations:
+        warn(f"all {len(sources)} sources failed - no data stored")
+        return EXIT_ALERT
+
+    # Valodi baj: van olyan sorozat, ami mar a kuszob folott elavult. Ezt nem a
+    # mai bukas donti el, hanem a DB-ben levo tenyleges kor -> onmagat gyogyitja,
+    # nem kell kulon allapotfajl.
+    if stale:
+        details = ", ".join(
+            f"{item['key']} ({item['days_since_update']}d)" for item in stale[:5]
+        )
+        warn(f"{len(stale)} series stale beyond threshold: {details}")
+        return EXIT_ALERT
+
+    # Atmeneti, egy-napos forraskieses: az adat megvan, a dashboard friss.
+    # Ez NEM ebreszti fel Tomit.
+    warn(
+        f"degraded: {len(failures)} of {len(sources)} sources failed; "
+        f"{stored} observations stored and exported anyway"
+    )
+    return EXIT_DEGRADED
 
 
 if __name__ == "__main__":

@@ -52,7 +52,22 @@ if [[ "${TOJASAR_FORCE_FAIL:-0}" == "1" ]]; then
   false
 fi
 
+# A scraper kilepesi kodja jelentest hordoz (lasd scrape.py EXIT_* konstansok):
+#   0 = minden forras rendben
+#   2 = degradalt: volt forraskieses, DE az adat mentve es exportalva -> NEM riasztunk
+#   barmi mas = valodi baj -> riasztas Tominak
+# A trap ERR-t azert kell ideiglenesen kikapcsolni, mert a `set -e` a 2-es
+# kodot is hibanak venne, es pont az a kulonbseg, amit meg akarunk tartani.
+set +e
 /usr/bin/python3 scraper/scrape.py
+scrape_rc=$?
+set -e
+
+if (( scrape_rc == 2 )); then
+  echo "scraper: degradalt futas (exit 2) - az adat mentve es exportalva, riasztas nelkul" >&2
+elif (( scrape_rc != 0 )); then
+  notify_failure "$scrape_rc"
+fi
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "git repository not initialized; skipping dashboard/data.json push"

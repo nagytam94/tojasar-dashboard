@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import asdict, is_dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -17,6 +17,10 @@ except ImportError:  # direct script execution
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_ROOT / "data" / "eggprices.db"
 EXPORT_PATH = PROJECT_ROOT / "dashboard" / "data.json"
+
+# Hany nap utan szamit egy sorozat elavultnak. A forrasok HETI kozlesuek, ezert
+# 14 nap = ket kihagyott kozles — ennel elobb nem allitunk elavultsagot.
+STALE_AFTER_DAYS = 14
 
 
 SCHEMA_SQL = """
@@ -227,6 +231,7 @@ def store_observations(
 def export_data_json(
     db_path: Path = DB_PATH,
     output_path: Path = EXPORT_PATH,
+    stale_after_days: int = STALE_AFTER_DAYS,
 ) -> dict[str, Any]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with connect(db_path) as conn:
@@ -303,9 +308,45 @@ def export_data_json(
             }
         )
 
+    # Frissesseg — kimondva, nem elrejtve. Az export a DB-bol dolgozik, ezert
+    # szerkezetileg mindig teljes; ettol meg egy-egy sorozat lehet regi. Ha ezt
+    # nem irjuk ki, a regi adat frissnek latszik (hamis zold).
+    as_of = datetime.now(ZoneInfo("Europe/Bucharest")).date()
+    stale: list[dict[str, Any]] = []
+    for series in series_map.values():
+        dates = [point["date"] for point in series["points"] if point.get("date")]
+        if not dates:
+            series["updated_through"] = None
+            series["days_since_update"] = None
+            continue
+        updated_through = max(dates)
+        series["updated_through"] = updated_through
+        try:
+            age_days = (as_of - date.fromisoformat(updated_through)).days
+        except ValueError:
+            series["days_since_update"] = None
+            continue
+        series["days_since_update"] = age_days
+        if age_days > stale_after_days:
+            stale.append(
+                {
+                    "key": series["key"],
+                    "label": series["label"],
+                    "updated_through": updated_through,
+                    "days_since_update": age_days,
+                }
+            )
+    stale.sort(key=lambda item: item["days_since_update"], reverse=True)
+
     payload = {
         "generated_at": datetime.now(ZoneInfo("Europe/Bucharest")).isoformat(timespec="seconds"),
-        "schema_version": "0.4",
+        "schema_version": "0.5",
+        "freshness": {
+            "as_of": as_of.isoformat(),
+            "stale_after_days": stale_after_days,
+            "series_total": len(series_map),
+            "series_stale": stale,
+        },
         "categories": categories,
     }
     tmp = output_path.with_suffix(output_path.suffix + ".tmp")
