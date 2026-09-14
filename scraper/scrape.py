@@ -5,6 +5,7 @@ import argparse
 import csv
 import io
 import json
+import os
 import re
 import sys
 import time
@@ -618,31 +619,68 @@ def _alert_state_path(db_path: Path) -> Path:
     return db_path.parent / ALERT_STATE_NAME
 
 
+def _delivered_marker_path(db_path: Path) -> Path:
+    """A shell ezt CSAK igazolt (HTTP 200) kezbesites utan hozza letre."""
+    override = os.environ.get("TOJASAR_ALERT_MARKER")
+    return Path(override) if override else db_path.parent / ".alert-sent"
+
+
 def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
     """Melyik sorozat valt MOST elavultta — esemeny, nem allapot.
 
-    RED1 N-1 (2026-09-14): az elso valtozat az ALLAPOTRA riasztott, ezert egy
-    tartosan lemarado forras miatt Tomi MINDEN REGGEL kapott volna riasztast.
-    A sajat szabalyunk (reference-esemenyt-naplozz-ne-allapotot) szerint a
-    jelzes a kuszob ATLEPESEHEZ kotodik. A folyamatos allapotot a dashboard
-    figyelmezteto savja mutatja, nem a riasztas.
+    RED1 N-1: az elso valtozat az ALLAPOTRA riasztott, ezert egy tartosan
+    lemarado forras miatt Tomi MINDEN REGGEL kapott volna riasztast. A sajat
+    szabalyunk (reference-esemenyt-naplozz-ne-allapotot) szerint a jelzes a
+    kuszob ATLEPESEHEZ kotodik; a folyamatos allapotot a dashboard savja mutatja.
 
-    A visszaallo sorozat kikerul a nyilvantartasbol, igy ha kesobb ujra
-    elavul, ujra szol egyszer.
+    RED1 N-3: KETFAZISU NYUGTA. A masodik valtozat mar a kezbesites MEGKISERLESE
+    ELOTT "jelentett"-re allitotta a sorozatot — ha a Telegram-kuldes aznap
+    bukott (halozat, lejart token, Bot API 5xx: mindharom megtortent mar), a
+    jelzes VEGLEG elveszett. Ezert:
+      - a mostani riasztas-jeloltek FUGGOBEN (`pending_stale`) maradnak,
+      - es csak akkor lepnek at "jelentett"-be, ha a shell a KOVETKEZO futasig
+        letrehozta az igazolt-kezbesites markert.
+    Ha a kuldes bukik, a marker nem jon letre -> masnap ujra riasztunk.
     """
     path = _alert_state_path(db_path)
-    current = sorted(item["key"] for item in stale)
-    previous: list[str] = []
+    marker = _delivered_marker_path(db_path)
+
+    reported: set[str] = set()
+    pending: set[str] = set()
     try:
-        previous = json.loads(path.read_text(encoding="utf-8")).get("reported_stale", [])
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        reported = set(raw.get("reported_stale", []))
+        pending = set(raw.get("pending_stale", []))
     except FileNotFoundError:
         pass
     except Exception as exc:  # serult allapotfajl ne allitsa meg a futast
         warn(f"alert state unreadable ({exc}); treating every stale series as new")
-    fresh = [key for key in current if key not in set(previous)]
+
+    # 1. fazis nyugtazasa: az elozo futas riasztasa IGAZOLTAN kiment
+    if marker.exists():
+        reported |= pending
+        pending = set()
+        try:
+            marker.unlink()
+        except OSError:
+            pass
+
+    current = {item["key"] for item in stale}
+    # a visszaallt sorozat kikerul -> ha kesobb ujra elavul, ujra szol
+    reported &= current
+    pending &= current
+
+    fresh = sorted(current - reported)
+    pending = set(fresh)
+
     try:
         path.write_text(
-            json.dumps({"reported_stale": current}, ensure_ascii=False, indent=2) + "\n",
+            json.dumps(
+                {"reported_stale": sorted(reported), "pending_stale": sorted(pending)},
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
             encoding="utf-8",
         )
     except Exception as exc:
@@ -756,6 +794,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # 4) Degradalt allapotok: latszanak a naploban es a dashboard savjan,
     #    de NEM ebresztik fel Tomit.
+    # RED1 N-5: aranyossag. 1 kihagyott sor zaj, 2599 katasztrofa — a puszta
+    # "van-e skipped" kerdes a kettot egyforman kezelte.
+    if len(skipped) > stored:
+        warn(
+            f"{len(skipped)} observation(s) rejected vs {stored} stored - "
+            f"a rejtettek tobbsegben vannak"
+        )
+        return EXIT_ALERT
+
     if skipped:
         warn(f"degraded: {len(skipped)} observation(s) rejected, {stored} stored")
         return EXIT_DEGRADED

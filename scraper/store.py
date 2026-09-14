@@ -33,6 +33,11 @@ STALE_AFTER_DAYS = 21
 # Also korlat a sorozatonkenti kuszobre — egy nagyon suru sorozat se riasszon
 # mar par nap utan.
 MIN_STALE_AFTER_DAYS = 10
+# Felso korlat: barmennyire is ritkul egy forras, 30 nap utan szolunk.
+MAX_STALE_AFTER_DAYS = 30
+# Ennyi legutobbi resbol szamolunk. Heti kozlesnel ez kb. fel ev — eleg hosszu,
+# hogy a valodi ritmust lassa, es eleg rovid, hogy egy regi kieses kioregedjen.
+GAP_WINDOW = 26
 
 
 SCHEMA_SQL = """
@@ -317,9 +322,17 @@ def series_freshness(
             continue
         gaps = _gap_days(days)
         if len(gaps) >= 2:
-            gaps_sorted = sorted(gaps)
-            median = gaps_sorted[len(gaps_sorted) // 2]
-            threshold = max(max(gaps) + median, 2 * median, MIN_STALE_AFTER_DAYS)
+            # RED1 N-4 (2026-09-14): a `max` a TELJES tortenetre monoton — egy
+            # regi, mar meggyogyult 60 napos kieses orokre 49 napra fujta volna
+            # a kuszobot, es soha nem allt volna vissza ("a kuszob megtanulja a
+            # sajat romlasat"). Ezert CSUSZOABLAK: csak az utolso GAP_WINDOW res
+            # szamit, igy a regi kieses kioregszik. Es FELSO KORLAT, hogy egy
+            # lassan ritkulo forras se tolhassa a detektalast a vegtelenbe.
+            window = gaps[-GAP_WINDOW:]
+            window_sorted = sorted(window)
+            median = window_sorted[len(window_sorted) // 2]
+            threshold = max(max(window) + median, 2 * median, MIN_STALE_AFTER_DAYS)
+            threshold = min(threshold, MAX_STALE_AFTER_DAYS)
         else:
             threshold = STALE_AFTER_DAYS
         parts = [entry["key"]]

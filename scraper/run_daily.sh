@@ -36,6 +36,11 @@ send_alert() {
       --data-urlencode "text=${text}" || true)"
     if [[ "$http_code" == "200" ]]; then
       echo "watchdog: Telegram failure alert sent (HTTP 200)" >&2
+      # IGAZOLT kezbesites. RED1 N-3: a scrape.py CSAK ebbol tudja meg, hogy a
+      # riasztas tenyleg megerkezett — enelkul az elozo valtozat a kuldes
+      # MEGKISERLESEKOR mar "jelentett"-re allitotta a sorozatot, es egy bukott
+      # kuldes VEGLEG elnyelte a jelzest.
+      : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
     else
       echo "watchdog: Telegram failure alert send failed (HTTP ${http_code:-none})" >&2
     fi
@@ -43,8 +48,9 @@ send_alert() {
     echo "watchdog: TELEGRAM_BOT_TOKEN missing; cannot send failure alert" >&2
   fi
 
-  # marker: a tesztek erre allitanak, nem a naploszovegre (RED1 javaslata)
-  : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
+  # "megkiseretlem" marker — ez MINDIG letrejon. A tesztek erre allitanak, ha
+  # azt kerdezik, riasztott-e egyaltalan; a fenti marker azt jelenti, KIMENT.
+  : > "${TOJASAR_ALERT_ATTEMPT_MARKER:-$PROJECT_ROOT/data/.alert-attempted}"
   set -e
 }
 

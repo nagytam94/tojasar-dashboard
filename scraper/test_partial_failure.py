@@ -137,12 +137,13 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
     body += f"sys.exit({exit_code})\n"
     (work / "scraper" / "scrape.py").write_text(body, encoding="utf-8")
     (work / "dashboard" / "data.json").write_text('{"x":1}\n', encoding="utf-8")
-    marker = work / "data" / ".alert-sent"
+    marker = work / "data" / ".alert-attempted"
     env = {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
         "HOME": str(work),
         "TELEGRAM_ENV": "/nonexistent/telegram.env",   # sosem kuld valodi uzenetet
-        "TOJASAR_ALERT_MARKER": str(marker),
+        "TOJASAR_ALERT_ATTEMPT_MARKER": str(marker),
+        "TOJASAR_ALERT_MARKER": str(work / "data" / ".alert-sent"),
     }
     setup = [["git", "init", "-q", "."], ["git", "add", "-A"],
              ["git", "-c", "user.name=t", "-c", "user.email=t@t",
@@ -162,6 +163,7 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
     return {
         "rc": proc.returncode,
         "riasztott": marker.exists(),
+        "kezbesitve": (work / "data" / ".alert-sent").exists(),
         "commitok": int(commits),
         "log": proc.stdout + proc.stderr,
     }
@@ -287,17 +289,46 @@ def main() -> int:
         check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
         check("tenyleg semmi nem ment be", after, before)
 
+        print("\n[A6] A kihagyottak TOBBSEGBEN -> RIASZT, nem csak degradalt [RED1 N-5]")
+        db, out = tmp / "a6.db", tmp / "a6.json"
+        seed(db, recent)
+
+        def mostly_bad(session, source):
+            good = observation(source.key, TODAY)
+            bad = [observation(source.key, TODAY - timedelta(days=i), price=None)
+                   for i in range(1, 4)]
+            return [good] + bad
+
+        code, _, _ = run_main(db, out, mostly_bad)
+        check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
+
         print("\n[B1] BEFAGYOTT forras (mind 200, regi adat) -> RIASZT elsore")
         db, out = tmp / "b1.db", tmp / "b1.json"
         seed(db, [120, 100, 90])
         code, _, _ = run_main(db, out, all_frozen)
         check("kilepesi kod = EXIT_ALERT (nem 0!)", code, scrape.EXIT_ALERT)
 
-        print("\n[B2] UGYANAZ masodszor -> mar NEM riaszt (esemeny, nem allapot) [N-1]")
+        print("\n[B2] Kezbesites NEM igazolt -> UJRA riaszt (nem nyeli el) [RED1 N-3]")
         code, _, _ = run_main(db, out, all_frozen)
-        check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
+        check("masodszor is EXIT_ALERT, mert nem jott nyugta", code, scrape.EXIT_ALERT)
         check("az allapotfajl letrejott",
               (db.parent / "alert-state.json").exists(), True)
+        state = json.loads((db.parent / "alert-state.json").read_text(encoding="utf-8"))
+        check("a jeloltek FUGGOBEN vannak, nem jelentettkent",
+              bool(state["pending_stale"]) and not state["reported_stale"], True)
+
+        print("\n[B2b] IGAZOLT kezbesites utan -> mar NEM riaszt (esemeny, nem allapot)")
+        (db.parent / ".alert-sent").touch()      # a shell ezt csak HTTP 200-nal irja
+        code, _, _ = run_main(db, out, all_frozen)
+        check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
+        check("a nyugta-marker elfogyott", (db.parent / ".alert-sent").exists(), False)
+        code, _, _ = run_main(db, out, all_frozen)
+        check("es tovabbra is csendben marad", code, scrape.EXIT_DEGRADED)
+
+        print("\n[B2c] A visszaallt sorozat kikerul -> kesobb ujra tud szolni")
+        code, _, _ = run_main(db, out, all_ok)
+        state = json.loads((db.parent / "alert-state.json").read_text(encoding="utf-8"))
+        check("a nyilvantartas kiurult", state["reported_stale"] + state["pending_stale"], [])
 
         print("\n[B3] Friss adat -> nincs fals elavultsag, es a kuszob SOROZATONKENTI")
         db, out = tmp / "b3.db", tmp / "b3.json"
@@ -307,6 +338,33 @@ def main() -> int:
         check("nincs elavult sorozat", sum(1 for r in rows if r["stale"]), 0)
         check("a kuszob sorozatonkent szamolodik (nem a globalis 21)",
               all(r["stale_after_days"] < store.STALE_AFTER_DAYS for r in rows), True)
+
+        print("\n[B4] A kuszob NEM tanulja meg a sajat romlasat [RED1 N-4]")
+        db4 = tmp / "b4.db"
+        # egy REGI, mar meggyogyult 60 napos kieses + azota 30 het heti ritmus
+        days = [400, 340]                       # <- a 60 napos res
+        days += [7 * i for i in range(30, 0, -1)]
+        rows = [observation("teszt_sorozat", TODAY - timedelta(days=d)) for d in days]
+        store.store_observations(rows, db4)
+        by_key = {r["key"]: r for r in store.series_freshness(db4)}
+        kuszob = by_key["teszt_sorozat"]["stale_after_days"]
+        check("a regi kieses kioregszik (nem fujja fel a kuszobot)",
+              kuszob <= 20, True)
+        check("es a felso korlat alatt marad",
+              kuszob <= store.MAX_STALE_AFTER_DAYS, True)
+
+        db5 = tmp / "b5.db"
+        # lassan ritkulo forras: a kuszob nem szaladhat el a vegtelenbe
+        acc, days5 = 0, []
+        for gap in (7, 7, 7, 10, 14, 20, 28, 40, 55, 70):
+            acc += gap
+            days5.append(acc)
+        base = max(days5)
+        rows5 = [observation("ritkulo", TODAY - timedelta(days=base - d)) for d in days5]
+        store.store_observations(rows5, db5)
+        by_key5 = {r["key"]: r for r in store.series_freshness(db5)}
+        check("a ritkulo forras kuszobe is korlatos",
+              by_key5["ritkulo"]["stale_after_days"] <= store.MAX_STALE_AFTER_DAYS, True)
 
         print("\n[C] run_daily.sh /bin/zsh alatt: PUBLIKALAS a riasztas ELOTT [N-1]")
         r0 = shell_case(tmp, 0, change_data=True)
@@ -323,6 +381,12 @@ def main() -> int:
         check("exit 1 -> rc 1", r1["rc"], 1)
         check("exit 1 -> RIASZT", r1["riasztott"], True)
         check("exit 1 -> MEGIS PUBLIKALT (ez volt a N-1 hiba)", r1["commitok"], 2)
+        # RED1 N-3: a kezbesites-marker CSAK HTTP 200-nal keletkezhet. Itt nincs
+        # token, tehat a kuldes BUKIK — ha a marker megis letrejonne, a scraper
+        # azt hinne, hogy a riasztas megerkezett, es masnap elnemulna.
+        check("exit 1 -> a kuldes bukott, NINCS kezbesites-nyugta",
+              r1["kezbesitve"], False)
+        check("exit 0 -> nyugta sincs (nem is riasztott)", r0["kezbesitve"], False)
 
         rp = shell_case(tmp, 0, change_data=True, with_remote=False)
         check("push-hiba -> TOVABBRA is riaszt (a trap a helyen van)",

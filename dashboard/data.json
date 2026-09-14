@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-14T09:15:25+03:00",
+  "generated_at": "2026-09-14T09:37:59+03:00",
   "schema_version": "0.5",
   "freshness": {
     "as_of": "2026-09-14",
@@ -8758,7 +8758,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__L__wit",
@@ -9173,7 +9173,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__M__bruin",
@@ -9588,7 +9588,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__M__wit",
@@ -10003,7 +10003,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__S__bruin",
@@ -10418,7 +10418,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__S__wit",
@@ -10833,7 +10833,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__XL__bruin",
@@ -11248,7 +11248,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__XL__wit",
@@ -11663,7 +11663,7 @@
           ],
           "updated_through": "2026-09-08",
           "days_since_update": 6,
-          "stale_after_days": 15
+          "stale_after_days": 14
         },
         {
           "key": "rungis__L",
@@ -12072,7 +12072,7 @@
           ],
           "updated_through": "2026-09-10",
           "days_since_update": 4,
-          "stale_after_days": 21
+          "stale_after_days": 15
         },
         {
           "key": "rungis__M",
@@ -12481,7 +12481,7 @@
           ],
           "updated_through": "2026-09-10",
           "days_since_update": 4,
-          "stale_after_days": 21
+          "stale_after_days": 15
         },
         {
           "key": "rungis__S",
@@ -12890,7 +12890,7 @@
           ],
           "updated_through": "2026-09-10",
           "days_since_update": 4,
-          "stale_after_days": 21
+          "stale_after_days": 15
         },
         {
           "key": "rungis__XL",
@@ -13299,7 +13299,7 @@
           ],
           "updated_through": "2026-09-10",
           "days_since_update": 4,
-          "stale_after_days": 21
+          "stale_after_days": 15
         },
         {
           "key": "weser_ems_boden__L__bruin",
