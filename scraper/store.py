@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -18,9 +19,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_ROOT / "data" / "eggprices.db"
 EXPORT_PATH = PROJECT_ROOT / "dashboard" / "data.json"
 
-# Hany nap utan szamit egy sorozat elavultnak. A forrasok HETI kozlesuek, ezert
-# 14 nap = ket kihagyott kozles — ennel elobb nem allitunk elavultsagot.
-STALE_AFTER_DAYS = 14
+# Hany nap utan szamit egy sorozat elavultnak.
+#
+# MERVE 2026-09-14 az elo DB-n (50 sorozat, teljes tortenet): a kozlesek median
+# koze 7 nap, de a sorozatonkenti LEGNAGYOBB termeszetes res 14 nap (rungis), es
+# a 95. percentilis is 14. Egy 14 napos kuszob tehat PONTOSAN a tortenelmi
+# maximumon ulne -> garantalt fals riasztas. 21 nap = egy teljes cikluspnyi
+# margo a mert maximum folott, es egy tenylegesen befagyott forrast (60+ nap)
+# tovabbra is hamar elkap.
+STALE_AFTER_DAYS = 21
 
 
 SCHEMA_SQL = """
@@ -195,7 +202,9 @@ def store_observations(
     with connect(db_path) as conn:
         init_db(conn)
         count = 0
+        skipped: list[str] = []
         for obs in observations:
+          try:
             series_id = get_or_create_series(
                 conn,
                 key=obs["key"],
@@ -224,6 +233,17 @@ def store_observations(
                 raw=obs,
             )
             count += 1
+          except Exception as exc:
+            # F-7 (RED1, 2026-09-14): egyetlen rossz sor NEM dobhatja el a tobbi
+            # forras kotegét. Ugyanaz a hibaosztaly, mint az eredeti gyoker, csak
+            # egy rezsivel lejjebb: ott a kapu allt rossz helyen, itt a kivetel
+            # vinne magaval az egesz tranzakciot.
+            skipped.append(f"{obs.get('key')}/{obs.get('week_iso')}: {exc}")
+        if skipped:
+            print(
+                f"warn: {len(skipped)} observation(s) skipped: " + "; ".join(skipped[:5]),
+                file=sys.stderr,
+            )
         conn.commit()
     return count
 

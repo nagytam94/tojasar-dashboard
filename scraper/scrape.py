@@ -18,6 +18,8 @@ warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL.*")
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 try:
     from .sources import EXPORT_UNIT, Source, get_sources
@@ -598,6 +600,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"})
+    # RED1 F-4 (2026-09-14): a naploban rogzitett OSSZES bukas tranziens kulso hiba
+    # volt (500 / 504 / read timeout), es egyetlen probalkozas ment forrasonkent.
+    # A riasztas-zaj gyokere itt van, nem a kilepesi kodban — ezert ujraprobalunk,
+    # mielott egy forrast bukottnak nyilvanitanank.
+    retry = Retry(
+        total=3,
+        backoff_factor=1.0,
+        status_forcelist=(500, 502, 503, 504),
+        allowed_methods=frozenset({"GET", "POST"}),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
 
     sources = list(get_sources(args.sources))
     all_observations: list[dict[str, Any]] = []
@@ -630,7 +646,15 @@ def main(argv: list[str] | None = None) -> int:
         warn("no observations from any source - nothing to store")
 
     stale: list[dict[str, Any]] = []
-    if not args.no_export:
+    if args.no_export:
+        pass
+    elif stored == 0:
+        # RED1 F-3 (2026-09-14): ha semmi nem kerult a DB-be, az export csak egy
+        # FRISS generated_at-et irna a regi adat foleé — a dashboard fejlece "ma
+        # frissult"-et mutatna egy teljes kieses napjan. A DB nem valtozott, tehat
+        # nincs mit exportalni. Inkabb legyen a fajl lathatoan regi.
+        warn("nothing stored - data.json left untouched (no fake generated_at)")
+    else:
         payload = export_data_json(args.db, args.out)
         count = sum(len(category["series"]) for category in payload["categories"])
         print(f"exported {count} series in {len(payload['categories'])} categories to {args.out}")
@@ -638,25 +662,29 @@ def main(argv: list[str] | None = None) -> int:
         if stale:
             print(f"stale series: {len(stale)}")
 
-    if not failures:
-        return EXIT_OK
-
     for failure in failures:
         warn(f"source failure: {failure}")
 
-    # Valodi baj: egyetlen forras sem adott adatot.
-    if not all_observations:
-        warn(f"all {len(sources)} sources failed - no data stored")
-        return EXIT_ALERT
-
-    # Valodi baj: van olyan sorozat, ami mar a kuszob folott elavult. Ezt nem a
-    # mai bukas donti el, hanem a DB-ben levo tenyleges kor -> onmagat gyogyitja,
-    # nem kell kulon allapotfajl.
+    # RED1 F-2 (2026-09-14): ez a vizsgalat a "nem volt hiba" ag ELOTT all.
+    # Korabban utana allt, es igy pont abban az esetben volt elerhetetlen,
+    # amiert keszult: ha minden forras HTTP 200-at ad, de BEFAGYOTT adatot, akkor
+    # `failures` ures -> a fuggveny az EXIT_OK agon kilepett, es egy 60 napja allo
+    # dashboard is "rendben"-nek szamitott. Ugyanaz a hibaforma, mint az eredeti
+    # gyoker (korai return atugorja a kesobbi dontest) — ezert all itt.
+    # Az elavultsagot a DB-ben levo TENYLEGES kor donti el, nem a mai bukas.
     if stale:
         details = ", ".join(
             f"{item['key']} ({item['days_since_update']}d)" for item in stale[:5]
         )
         warn(f"{len(stale)} series stale beyond threshold: {details}")
+        return EXIT_ALERT
+
+    if not failures:
+        return EXIT_OK
+
+    # Valodi baj: egyetlen forras sem adott adatot.
+    if not all_observations:
+        warn(f"all {len(sources)} sources failed - no data stored")
         return EXIT_ALERT
 
     # Atmeneti, egy-napos forraskieses: az adat megvan, a dashboard friss.

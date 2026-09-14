@@ -56,12 +56,14 @@ fi
 #   0 = minden forras rendben
 #   2 = degradalt: volt forraskieses, DE az adat mentve es exportalva -> NEM riasztunk
 #   barmi mas = valodi baj -> riasztas Tominak
-# A trap ERR-t azert kell ideiglenesen kikapcsolni, mert a `set -e` a 2-es
-# kodot is hibanak venne, es pont az a kulonbseg, amit meg akarunk tartani.
-set +e
-/usr/bin/python3 scraper/scrape.py
-scrape_rc=$?
-set -e
+# FONTOS (RED1 F-1, 2026-09-14): a `set +e` zsh-ben NEM kapcsolja ki a
+# `trap ... ERR`-t — az elso valtozatom ezt hitte, es emiatt a 2-es kod MEGIS
+# riasztast valtott, sot a notify_failure `exit`-tel zart, igy a lenti git-blokk
+# le sem futott (a dashboard befagyva maradt). A `|| ...` alak viszont a
+# parancsot a trap alol is kiveszi. A trap marad a helyen: a git-blokk hibait
+# tovabbra is jelentenie kell.
+scrape_rc=0
+/usr/bin/python3 scraper/scrape.py || scrape_rc=$?
 
 if (( scrape_rc == 2 )); then
   echo "scraper: degradalt futas (exit 2) - az adat mentve es exportalva, riasztas nelkul" >&2

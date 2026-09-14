@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-14T08:41:23+03:00",
+  "generated_at": "2026-09-14T08:52:59+03:00",
   "schema_version": "0.5",
   "freshness": {
     "as_of": "2026-09-14",
-    "stale_after_days": 14,
+    "stale_after_days": 21,
     "series_total": 50,
     "series_stale": []
   },

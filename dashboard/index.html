@@ -98,6 +98,8 @@
 </header>
 <div class="mockwarn" id="mockwarn"><svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> MOCK adat van betöltve — a valós scraper még nem írta felül a data.json-t.</div>
 
+<div class="mockwarn" id="freshwarn"></div>
+
 <div class="tabs" id="tabs"></div>
 <div class="tabdesc" id="tabdesc"></div>
 
@@ -143,7 +145,7 @@
   </main>
 </div>
 <div class="tip" id="tip"></div>
-<div class="foot">Forrás: pluimveebeurs.com (heti noteringok) · adat: <span id="genat">—</span> · auto-frissül naponta 08:00-kor · Cloudus × Turing × Humboldt</div>
+<div class="foot">Forrás: pluimveebeurs.com (heti noteringok) · export futott: <span id="genat">—</span> · legfrissebb adatpont: <span id="lastpoint">—</span> · auto-frissül naponta 07:30-kor · Cloudus × Turing × Humboldt</div>
 
 <script>
 const PALETTE=["#F25623","#19c37d","#3b9dff","#ffb020","#ff5470","#9b6bff","#16c8c8","#e8e85a",
@@ -180,9 +182,28 @@ async function load(){
   CATS.forEach(c => (c.series||[]).forEach((s,i)=> colorMap[s.key]=PALETTE[i%PALETTE.length]));
   const gen=new Date(d.generated_at);
   $("#genat").textContent=isNaN(gen)?(d.generated_at||"—"):gen.toLocaleString("hu-HU");
+  renderFreshness(d);
   buildTabs();
   buildRange();
   selectCategory(CATS[0].key);
+}
+
+// RED1 F-3 (2026-09-14): a generated_at csak azt mondja, mikor FUTOTT az export —
+// nem azt, mikor jott utoljara VALODI adat. Amig ez nem latszik a feluleten, egy
+// befagyott forras mai datummal, frissnek almazva jelenik meg. Ezert mondjuk ki.
+function renderFreshness(d){
+  const box=$("#freshwarn"); if(!box) return;
+  const all=(d.categories||[]).flatMap(c=>c.series||[]);
+  const newest=all.map(s=>s.updated_through).filter(Boolean).sort().pop();
+  const el=$("#lastpoint");
+  if(el) el.textContent = newest ? new Date(newest).toLocaleDateString("hu-HU") : "—";
+
+  const stale=(d.freshness&&d.freshness.series_stale)||[];
+  if(!stale.length){ box.style.display="none"; return; }
+  const nev=stale.slice(0,6).map(x=>`${x.label||x.key} (${x.days_since_update} napja)`).join(" · ");
+  const tobb=stale.length>6?` … +${stale.length-6} további`:"";
+  box.textContent=`⚠️ ${stale.length} sorozat elavult (${d.freshness.stale_after_days} napnál régebbi): ${nev}${tobb}`;
+  box.style.display="block";
 }
 
 function curCat(){ return CATS.find(c=>c.key===CAT) || CATS[0]; }
