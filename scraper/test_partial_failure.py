@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """Regresszios tesztek a tojasar-scraper 2026-09-14-i javitasaira.
 
-Mit oriz ez a teszt (mindharom valodi, elesben megtortent hibaosztaly):
-
-  A) A hiba-kapu a MENTES ELOTT allt -> egy forras kiesese eldobta az osszes
-     tobbi forras aznapi adatat. (2026-09-14 07:30: 13-bol 12 forras sikeres,
-     2755 megfigyeles, a DB-be 0 sor.)
-  B) Az elavultsag-kapu a "nem volt hiba" ag UTAN allt -> egy befagyott, de
-     HTTP 200-at ado forras mellett a rendszer exit 0-t adott. (RED1 F-2)
-  C) A `set +e` zsh-ben nem kapcsolja ki a `trap ERR`-t -> a degradalt futas
-     megis riasztott, es a git-blokk le sem futott. (RED1 F-1)
+A KOZOS HIBAFORMA, amit ez a teszt oriz:
+    "a hiba-dontes megelozi a hatast"
+Haromszor buktunk el rajta ugyanazon a napon:
+  1. scrape.py    — a hibakapu a MENTES elott allt   -> [A1]
+  2. scrape.py    — a stale-kapu a dontes utan allt  -> [B1]
+  3. run_daily.sh — a riasztas a PUBLIKALAS elott    -> [C]
+Plusz a nema valtozata: a hibaelnyeles sikernek latszott -> [A5]
 
 A teszt NEM fugg sem a halozattol, sem az elo DB-tol: sajat DB-t epit, es a
 scrape_source-t monkeypatcheli. Igy friss klonon is fut.
@@ -19,12 +17,14 @@ Futtatas:  /usr/bin/python3 scraper/test_partial_failure.py
 from __future__ import annotations
 
 import json
-import shutil
-import sqlite3
 import subprocess
+import sqlite3
 import sys
 import tempfile
+import threading
+import time
 from datetime import date, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -48,28 +48,23 @@ def check(name: str, got, want) -> None:
     print(f"  {'OK  ' if ok else 'BUKIK'}  {name}: kapott={got!r} vart={want!r}")
 
 
-def observation(key: str, day: date) -> dict:
+def observation(key: str, day: date, price: float | None = 123.4) -> dict:
+    iso = day.isocalendar()
     return {
-        "key": key,
-        "label": f"teszt {key}",
-        "country": "NL",
-        "category": "kelteto",
-        "size": None,
-        "color": None,
-        "unit": "EUR/100",
-        "week_iso": f"{day.isocalendar()[0]}-W{day.isocalendar()[1]:02d}",
-        "observed_date": day.isoformat(),
-        "price": 123.4,
-        "change": None,
+        "key": key, "label": f"teszt {key}", "country": "NL",
+        "category": "kelteto", "size": None, "color": None, "unit": "EUR/100",
+        "week_iso": f"{iso[0]}-W{iso[1]:02d}", "observed_date": day.isoformat(),
+        "price": price, "change": None,
         "fetched_at": f"{day.isoformat()}T09:00:00+00:00",
         "source_url": "https://example.invalid/teszt",
     }
 
 
-def build_db(path: Path, seed_day: date) -> int:
+def seed(db: Path, days_back: list[int]) -> None:
     """Sajat DB — nem az elo adatbazis masolata (RED1 F-5)."""
-    seeded = [observation(key, seed_day) for key in SOURCE_KEYS]
-    return store.store_observations(seeded, path)
+    rows = [observation(key, TODAY - timedelta(days=d))
+            for d in days_back for key in SOURCE_KEYS]
+    store.store_observations(rows, db)
 
 
 def count_rows(db: Path) -> int:
@@ -80,13 +75,11 @@ def count_rows(db: Path) -> int:
         conn.close()
 
 
-def run_main(tmp: Path, name: str, patch, seed_day: date):
-    db, out = tmp / f"{name}.db", tmp / f"{name}.json"
-    build_db(db, seed_day)
-    before = count_rows(db)
+def run_main(db: Path, out: Path, patch):
+    before = count_rows(db) if db.exists() else 0
     scrape.scrape_source = patch
     code = scrape.main(["--db", str(db), "--out", str(out)])
-    return code, before, count_rows(db), out
+    return code, before, count_rows(db)
 
 
 # --- forras-viselkedesek -----------------------------------------------------
@@ -106,121 +99,269 @@ def all_ok(session, source):
 
 def all_frozen(session, source):
     """HTTP 200, szep parse — de a forras adata befagyott (RED1 F-2)."""
-    return [observation(source.key, TODAY - timedelta(days=60))]
+    return [observation(source.key, TODAY - timedelta(days=90))]
 
 
 def one_bad_row(session, source):
-    """Egy forras ertelmezhetetlen arat ad; a tobbi 12 adata NEM veszhet el."""
     if source.key == FAILING_KEY:
-        bad = observation(source.key, TODAY)
-        bad["price"] = None
-        return [bad]
+        return [observation(source.key, TODAY, price=None)]
     return [observation(source.key, TODAY)]
 
 
-def shell_case(tmp: Path, exit_code: int) -> tuple[int, str]:
-    """A VALODI run_daily.sh, /bin/zsh alatt (ahogy a launchd hivja), stub scraperrel."""
-    work = tmp / f"shell{exit_code}"
+def every_row_bad(session, source):
+    """Minden forras valaszol, de EGYETLEN sor sem tarolhato (RED1 N-2)."""
+    return [observation(source.key, TODAY, price=None)]
+
+
+# --- shell-harness -----------------------------------------------------------
+def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool = True):
+    """A VALODI run_daily.sh, /bin/zsh alatt (ahogy a launchd hivja).
+
+    `with_remote=False` -> a `git push` bukik: ezzel meressuk, hogy a trap
+    TOVABBRA is jelenti a git-hibakat (pozitiv kontroll).
+    """
+    work = tmp / f"shell{exit_code}{'c' if change_data else ''}{'r' if with_remote else 'n'}"
     (work / "scraper").mkdir(parents=True)
     (work / "dashboard").mkdir()
+    (work / "data").mkdir()
     script = (SCRAPER_DIR / "run_daily.sh").read_text(encoding="utf-8")
     script = "\n".join(
         f'PROJECT_ROOT="{work}"' if line.startswith("PROJECT_ROOT=") else line
         for line in script.splitlines()
     )
     (work / "scraper" / "run_daily.sh").write_text(script, encoding="utf-8")
-    (work / "scraper" / "scrape.py").write_text(
-        f"import sys\nsys.exit({exit_code})\n", encoding="utf-8"
-    )
+    body = "import sys\n"
+    if change_data:
+        body += ('import pathlib, json\n'
+                 'pathlib.Path("dashboard/data.json").write_text(json.dumps({"x":2}))\n')
+    body += f"sys.exit({exit_code})\n"
+    (work / "scraper" / "scrape.py").write_text(body, encoding="utf-8")
     (work / "dashboard" / "data.json").write_text('{"x":1}\n', encoding="utf-8")
+    marker = work / "data" / ".alert-sent"
     env = {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
         "HOME": str(work),
-        # szandekosan nem letezo utvonal: a teszt SOSEM kuldhet valodi uzenetet
-        "TELEGRAM_ENV": "/nonexistent/telegram.env",
+        "TELEGRAM_ENV": "/nonexistent/telegram.env",   # sosem kuld valodi uzenetet
+        "TOJASAR_ALERT_MARKER": str(marker),
     }
-    for cmd in (["git", "init", "-q", "."], ["git", "add", "-A"],
-                ["git", "-c", "user.name=t", "-c", "user.email=t@t",
-                 "commit", "-qm", "init"]):
+    setup = [["git", "init", "-q", "."], ["git", "add", "-A"],
+             ["git", "-c", "user.name=t", "-c", "user.email=t@t",
+              "commit", "-qm", "init"]]
+    if with_remote:
+        bare = work.parent / f"{work.name}-remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(bare)],
+                       env=env, check=True, capture_output=True)
+        setup += [["git", "remote", "add", "origin", str(bare)],
+                  ["git", "push", "-q", "-u", "origin", "HEAD"]]
+    for cmd in setup:
         subprocess.run(cmd, cwd=work, env=env, check=True, capture_output=True)
-    proc = subprocess.run(
-        ["/bin/zsh", "scraper/run_daily.sh"],
-        cwd=work, env=env, capture_output=True, text=True,
+    proc = subprocess.run(["/bin/zsh", "scraper/run_daily.sh"],
+                          cwd=work, env=env, capture_output=True, text=True)
+    commits = subprocess.run(["git", "rev-list", "--count", "HEAD"], cwd=work,
+                             env=env, capture_output=True, text=True).stdout.strip()
+    return {
+        "rc": proc.returncode,
+        "riasztott": marker.exists(),
+        "commitok": int(commits),
+        "log": proc.stdout + proc.stderr,
+    }
+
+
+# --- retry-harness -----------------------------------------------------------
+class _Counting(BaseHTTPRequestHandler):
+    hits = 0
+
+    def do_GET(self):  # noqa: N802
+        type(self).hits += 1
+        self.send_response(500)
+        self.end_headers()
+        self.wfile.write(b"nope")
+
+    def log_message(self, *a):  # csend
+        pass
+
+
+def retry_hits() -> int:
+    _Counting.hits = 0
+    srv = HTTPServer(("127.0.0.1", 0), _Counting)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        session = scrape.build_session()
+        try:
+            session.get(f"http://127.0.0.1:{srv.server_port}/x", timeout=5)
+        except Exception:
+            pass
+        return _Counting.hits
+    finally:
+        srv.shutdown()
+        srv.server_close()
+        thread.join(timeout=5)
+
+
+# --- UI-harness --------------------------------------------------------------
+def render_freshness_cases(tmp: Path) -> dict:
+    html = (PROJECT_ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
+    start = html.index("function renderFreshness(")
+    end = html.index("function curCat(")
+    fn = html[start:end]
+    stale_payload = {
+        "categories": [{"series": [{"key": "a", "label": "A",
+                                    "updated_through": "2026-07-01",
+                                    "days_since_update": 60}]}],
+        "freshness": {"stale_after_days": 21, "series_stale": [
+            {"key": "a", "label": "A", "days_since_update": 60}]},
+    }
+    cases = {
+        "v04_nincs_freshness": {"categories": [{"series": [{"key": "a"}]}]},
+        "ures": {"categories": []},
+        "null_datum": {"categories": [{"series": [{"key": "a",
+                                                   "updated_through": None}]}],
+                       "freshness": {"series_stale": []}},
+        "elavult": stale_payload,
+    }
+    js = tmp / "rf.js"
+    js.write_text(
+        "const S={};"
+        "function $(sel){const k=sel.slice(1);"
+        "  if(!S[k])S[k]={textContent:'',style:{display:''}};return S[k];}\n"
+        + fn +
+        "const cases=" + json.dumps(cases) + ";\n"
+        "const out={};\n"
+        "for(const k of Object.keys(cases)){\n"
+        "  S['freshwarn']={textContent:'',style:{display:''}};\n"
+        "  S['lastpoint']={textContent:''};\n"
+        "  try{ renderFreshness(cases[k]); out[k]={ok:true,"
+        "    display:S['freshwarn'].style.display, txt:S['freshwarn'].textContent};}\n"
+        "  catch(e){ out[k]={ok:false, err:String(e)};}\n"
+        "}\n"
+        "console.log(JSON.stringify(out));\n",
+        encoding="utf-8",
     )
-    return proc.returncode, proc.stdout + proc.stderr
+    proc = subprocess.run(["node", str(js)], capture_output=True, text=True)
+    if proc.returncode != 0:
+        return {"_hiba": proc.stderr.strip()[:200]}
+    return json.loads(proc.stdout)
 
 
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="tojasar-teszt-") as tmpdir:
         tmp = Path(tmpdir)
-        recent = TODAY - timedelta(days=3)
+        recent = [10, 3]          # ket friss adatpont -> ~7 napos ritmus
 
         print("\n[A1] EGY forras bukik, a tobbi jo -> a jo adat NEM veszhet el")
-        code, before, after, out = run_main(tmp, "egy_bukik", one_fails, recent)
+        db, out = tmp / "a1.db", tmp / "a1.json"
+        seed(db, recent)
+        code, before, after = run_main(db, out, one_fails)
         check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
-        check("pontosan a 12 jo forras sora kerult be",
-              after - before, len(SOURCE_KEYS) - 1)
+        check("pontosan a 12 jo forras sora kerult be", after - before,
+              len(SOURCE_KEYS) - 1)
         check("data.json ujragenaralodott", out.exists(), True)
 
-        print("\n[A2] MINDEN forras bukik -> riaszt, es a data.json NEM kap hamis datumot")
-        code, before, after, out = run_main(tmp, "mind_bukik", all_fail, recent)
+        print("\n[A2] MINDEN forras bukik -> riaszt, data.json NEM kap hamis datumot")
+        db, out = tmp / "a2.db", tmp / "a2.json"
+        seed(db, recent)
+        code, before, after = run_main(db, out, all_fail)
         check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
         check("semmi nem mentodott", after, before)
-        check("data.json NEM irodott ki (nincs hamis generated_at)", out.exists(), False)
+        check("data.json NEM irodott ki", out.exists(), False)
 
         print("\n[A3] MINDEN forras jo -> tiszta siker")
-        code, before, after, _ = run_main(tmp, "mind_jo", all_ok, recent)
+        db, out = tmp / "a3.db", tmp / "a3.json"
+        seed(db, recent)
+        code, before, after = run_main(db, out, all_ok)
         check("kilepesi kod = EXIT_OK", code, scrape.EXIT_OK)
         check("mentodott", after > before, True)
 
-        print("\n[B1] BEFAGYOTT forras: mind HTTP 200, de regi adat -> RIASZT")
-        code, _, _, out = run_main(tmp, "befagyott", all_frozen,
-                                   TODAY - timedelta(days=60))
-        payload = json.loads(out.read_text(encoding="utf-8"))
+        print("\n[A4] EGY rossz sor nem dobhatja el a tobbi forras koteget")
+        db, out = tmp / "a4.db", tmp / "a4.json"
+        seed(db, recent)
+        code, before, after = run_main(db, out, one_bad_row)
+        check("a 12 jo forras adata bekerult", after - before, len(SOURCE_KEYS) - 1)
+        check("degradaltnak jelzi (nem nema siker)", code, scrape.EXIT_DEGRADED)
+
+        print("\n[A5] MINDEN sor elutasitva -> RIASZT (nem nema siker) [RED1 N-2]")
+        db, out = tmp / "a5.db", tmp / "a5.json"
+        seed(db, recent)
+        code, before, after = run_main(db, out, every_row_bad)
+        check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
+        check("tenyleg semmi nem ment be", after, before)
+
+        print("\n[B1] BEFAGYOTT forras (mind 200, regi adat) -> RIASZT elsore")
+        db, out = tmp / "b1.db", tmp / "b1.json"
+        seed(db, [120, 100, 90])
+        code, _, _ = run_main(db, out, all_frozen)
         check("kilepesi kod = EXIT_ALERT (nem 0!)", code, scrape.EXIT_ALERT)
-        check("a freshness blokk jelzi az elavulast",
-              len(payload["freshness"]["series_stale"]) > 0, True)
 
-        print("\n[B2] Friss adat -> NINCS fals elavultsag-riasztas")
-        code, _, _, out = run_main(tmp, "friss", all_ok, recent)
-        payload = json.loads(out.read_text(encoding="utf-8"))
-        check("nincs elavult sorozat", len(payload["freshness"]["series_stale"]), 0)
-        check("a kuszob a mert 14 napos maximum FOLOTT van",
-              store.STALE_AFTER_DAYS > 14, True)
+        print("\n[B2] UGYANAZ masodszor -> mar NEM riaszt (esemeny, nem allapot) [N-1]")
+        code, _, _ = run_main(db, out, all_frozen)
+        check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
+        check("az allapotfajl letrejott",
+              (db.parent / "alert-state.json").exists(), True)
 
-        print("\n[A4] Egy rossz SOR nem dobhatja el a tobbi forras koteget")
-        code, before, after, _ = run_main(tmp, "rossz_sor", one_bad_row, recent)
-        check("a 12 jo forras adata bekerult",
-              after - before, len(SOURCE_KEYS) - 1)
+        print("\n[B3] Friss adat -> nincs fals elavultsag, es a kuszob SOROZATONKENTI")
+        db, out = tmp / "b3.db", tmp / "b3.json"
+        seed(db, recent)
+        code, _, _ = run_main(db, out, all_ok)
+        rows = store.series_freshness(db)
+        check("nincs elavult sorozat", sum(1 for r in rows if r["stale"]), 0)
+        check("a kuszob sorozatonkent szamolodik (nem a globalis 21)",
+              all(r["stale_after_days"] < store.STALE_AFTER_DAYS for r in rows), True)
 
-        print("\n[C] run_daily.sh /bin/zsh alatt — a trap ERR nem lohet ki mindent")
-        rc0, log0 = shell_case(tmp, 0)
-        check("exit 0 -> script rc=0", rc0, 0)
-        check("exit 0 -> nincs riasztas", "cannot send failure alert" in log0, False)
+        print("\n[C] run_daily.sh /bin/zsh alatt: PUBLIKALAS a riasztas ELOTT [N-1]")
+        r0 = shell_case(tmp, 0, change_data=True)
+        check("exit 0 -> rc 0", r0["rc"], 0)
+        check("exit 0 -> nem riaszt", r0["riasztott"], False)
+        check("exit 0 -> publikalt (uj commit)", r0["commitok"], 2)
 
-        rc2, log2 = shell_case(tmp, 2)
-        check("exit 2 -> script rc=0", rc2, 0)
-        check("exit 2 -> NINCS riasztas", "cannot send failure alert" in log2, False)
-        check("exit 2 -> a degradalt uzenet kiirodott",
-              "degradalt futas" in log2, True)
-        check("exit 2 -> a git-blokk ELERHETO",
-              "skipping commit/push" in log2, True)
+        r2 = shell_case(tmp, 2, change_data=True)
+        check("exit 2 -> rc 2", r2["rc"], 2)
+        check("exit 2 -> NEM riaszt", r2["riasztott"], False)
+        check("exit 2 -> PUBLIKALT", r2["commitok"], 2)
 
-        rc1, log1 = shell_case(tmp, 1)
-        check("exit 1 -> script rc=1", rc1, 1)
-        check("exit 1 -> RIASZT", "cannot send failure alert" in log1, True)
+        r1 = shell_case(tmp, 1, change_data=True)
+        check("exit 1 -> rc 1", r1["rc"], 1)
+        check("exit 1 -> RIASZT", r1["riasztott"], True)
+        check("exit 1 -> MEGIS PUBLIKALT (ez volt a N-1 hiba)", r1["commitok"], 2)
+
+        rp = shell_case(tmp, 0, change_data=True, with_remote=False)
+        check("push-hiba -> TOVABBRA is riaszt (a trap a helyen van)",
+              rp["riasztott"], True)
+        check("push-hiba -> nem-nulla rc", rp["rc"] != 0, True)
 
         print("\n[D] A frissesseg ki van mondva az exportban")
-        payload = json.loads((tmp / "egy_bukik.json").read_text(encoding="utf-8"))
+        payload = json.loads((tmp / "a1.json").read_text(encoding="utf-8"))
         every = [s for c in payload["categories"] for s in c["series"]]
         check("minden sorozatnak van updated_through",
               all("updated_through" in s for s in every), True)
-        check("minden sorozatnak van days_since_update",
-              all("days_since_update" in s for s in every), True)
+        check("minden sorozatnak van sajat kuszobe",
+              all("stale_after_days" in s for s in every), True)
         check("freshness blokk letezik", "freshness" in payload, True)
 
+        print("\n[E] Retry-reteg: 500-as valasz -> tobbszor probal [RED1 M1 res]")
+        # FONTOS: a vart erteket NEM a kodbol vesszuk. Az elso valtozat
+        # `scrape.RETRY_TOTAL + 1`-et irt — ezzel a konstans mutalasa egyutt
+        # mozgatta a mercet is, es a "retry kikapcsolva" mutacio ATMENT a
+        # teszten. A teszt csak akkor allitas, ha a vart ertek fuggetlen.
+        hits = retry_hits()
+        check("a scraper ujraprobal (1 keres + 3 retry = 4 talalat)", hits, 4)
+        check("es tenyleg tobbszor probal, nem egyszer", hits > 1, True)
+
+        print("\n[F] renderFreshness regi/hianyos sement sem dol el [RED1 M2 res]")
+        ui = render_freshness_cases(tmp)
+        if "_hiba" in ui:
+            check("node-harness lefutott", ui["_hiba"], "")
+        else:
+            check("v0.4 (nincs freshness) nem dob hibat", ui["v04_nincs_freshness"]["ok"], True)
+            check("ures categories nem dob hibat", ui["ures"]["ok"], True)
+            check("null updated_through nem dob hibat", ui["null_datum"]["ok"], True)
+            check("elavultnal a savo LATSZIK", ui["elavult"].get("display"), "block")
+            check("es megnevezi a sorozatot",
+                  "60 napja" in ui["elavult"].get("txt", ""), True)
+            check("v0.4-en a savo REJTVE", ui["v04_nincs_freshness"].get("display"), "none")
+
     failed = [r for r in results if not r[1]]
-    print("\n" + "=" * 64)
+    print("\n" + "=" * 66)
     print(f"OSSZESEN {len(results)} allitas, BUKOTT {len(failed)}")
     for name, _, detail in failed:
         print(f"  BUKIK: {name} — {detail}")

@@ -22,10 +22,12 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      # SZANDEKOSAN a rendszer sajat ertelmezoje: a launchd `/usr/bin/python3`-at
+      # hiv, ami macOS-en 3.9.x. Ha a CI 3.11-et merne, egy 3.10+ szintaxis
+      # atmenne a kapun es elesben bukna. (RED1 2. kor megjegyzese.)
+      - name: Ertelmezo (a produkcios utvonal)
+        run: /usr/bin/python3 --version
       - name: Fuggosegek
-        run: python -m pip install --disable-pip-version-check -r scraper/requirements.txt
+        run: /usr/bin/python3 -m pip install --user --disable-pip-version-check -r scraper/requirements.txt
       - name: Halozat nelkuli regresszios tesztek
-        run: python scraper/test_partial_failure.py
+        run: /usr/bin/python3 scraper/test_partial_failure.py

@@ -6,7 +6,10 @@ ERR_LOG="$PROJECT_ROOT/data/scraper.err.log"
 TELEGRAM_ENV="${TELEGRAM_ENV:-/Users/cloudus/.claude/channels/telegram/.env}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-8578193341}"
 
-notify_failure() {
+# send_alert CSAK kuld — NEM lep ki. (RED1 N-1, 2026-09-14: az elozo valtozat
+# `exit`-tel zart, ezert a riasztas megette a publikalast: egyetlen lemarado
+# sorozat miatt a dashboard veglegesen befagyott volna.)
+send_alert() {
   local exit_code="${1:-1}"
   set +e
 
@@ -40,10 +43,36 @@ notify_failure() {
     echo "watchdog: TELEGRAM_BOT_TOKEN missing; cannot send failure alert" >&2
   fi
 
-  exit "$exit_code"
+  # marker: a tesztek erre allitanak, nem a naploszovegre (RED1 javaslata)
+  : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
+  set -e
+}
+
+# A trap-nek KELL kilepnie — ott valodi, varatlan hiba tortent.
+notify_failure() {
+  send_alert "${1:-1}"
+  exit "${1:-1}"
 }
 
 trap 'notify_failure $?' ERR
+
+# A dashboard publikalasa. Fuggveny, hogy `return`-nel zarhasson: korabban
+# `exit`-ek voltak benne, es igy nem lehetett volna a hiba-dontes ELE tenni.
+publish_dashboard() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "git repository not initialized; skipping dashboard/data.json push"
+    return 0
+  fi
+  git add dashboard/data.json
+  if git diff --cached --quiet -- dashboard/data.json; then
+    echo "dashboard/data.json unchanged; skipping commit/push"
+    return 0
+  fi
+  local today
+  today="$(date +%F)"
+  git commit -m "data: daily refresh ${today}"
+  git push
+}
 
 cd "$PROJECT_ROOT"
 
@@ -65,23 +94,22 @@ fi
 scrape_rc=0
 /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
 
+# ---------------------------------------------------------------------------
+# A SORREND A LENYEG (RED1 N-1, 2026-09-14).
+# Eloszor PUBLIKALUNK, es csak azutan dontunk a riasztasrol. Haromszor buktunk
+# el ugyanezen a formán: a hiba-dontes megelozte a hatast.
+#   1. scrape.py — a hibakapu a MENTES elott allt
+#   2. scrape.py — a stale-kapu a dontes utan allt
+#   3. run_daily.sh — a riasztas a PUBLIKALAS elott allt   <- ez itt
+# Egy lemarado sorozat nem akadalyozhatja meg a masik 49 friss adatanak
+# kikeruleset.
+# ---------------------------------------------------------------------------
+publish_dashboard
+
 if (( scrape_rc == 2 )); then
-  echo "scraper: degradalt futas (exit 2) - az adat mentve es exportalva, riasztas nelkul" >&2
+  echo "scraper: degradalt futas (exit 2) - az adat mentve es publikalva, riasztas nelkul" >&2
 elif (( scrape_rc != 0 )); then
-  notify_failure "$scrape_rc"
+  send_alert "$scrape_rc"
 fi
 
-if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "git repository not initialized; skipping dashboard/data.json push"
-  exit 0
-fi
-
-git add dashboard/data.json
-if git diff --cached --quiet -- dashboard/data.json; then
-  echo "dashboard/data.json unchanged; skipping commit/push"
-  exit 0
-fi
-
-today="$(date +%F)"
-git commit -m "data: daily refresh ${today}"
-git push
+exit "$scrape_rc"

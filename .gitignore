@@ -7,3 +7,8 @@ dashboard/*.consumer-backup-*.json
 __pycache__/
 scraper/__pycache__/
 .DS_Store
+
+# Lokalis uzemeltetesi allapot — NEM verziozando (gepenkent mas, es a
+# riasztas-esemenyek nyilvantartasa nem a repo dolga).
+data/alert-state.json
+data/.alert-sent

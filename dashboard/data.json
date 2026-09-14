@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-14T08:52:59+03:00",
+  "generated_at": "2026-09-14T09:15:25+03:00",
   "schema_version": "0.5",
   "freshness": {
     "as_of": "2026-09-14",
-    "stale_after_days": 21,
+    "fallback_stale_after_days": 21,
     "series_total": 50,
     "series_stale": []
   },
@@ -425,7 +425,8 @@
             }
           ],
           "updated_through": "2026-09-09",
-          "days_since_update": 5
+          "days_since_update": 5,
+          "stale_after_days": 14
         },
         {
           "key": "broederijnotering_lto_nop_nvp",
@@ -839,7 +840,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         }
       ]
     },
@@ -1266,7 +1268,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "rungis_paris_industrie",
@@ -1680,7 +1683,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_verarbeitung",
@@ -2100,7 +2104,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_verarbeitung_boden",
@@ -2520,7 +2525,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         }
       ]
     },
@@ -2941,7 +2947,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__54",
@@ -3355,7 +3362,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__57",
@@ -3769,7 +3777,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__59",
@@ -4183,7 +4192,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__61",
@@ -4597,7 +4607,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__64",
@@ -5011,7 +5022,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__67",
@@ -5425,7 +5437,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_48",
@@ -5839,7 +5852,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_54",
@@ -6253,7 +6267,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_57",
@@ -6667,7 +6682,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_59",
@@ -7081,7 +7097,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_61",
@@ -7495,7 +7512,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_64",
@@ -7909,7 +7927,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "barneveldse__kg_67",
@@ -8323,7 +8342,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 14
         },
         {
           "key": "kruisem__L__bruin",
@@ -8737,7 +8757,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__L__wit",
@@ -9151,7 +9172,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__M__bruin",
@@ -9565,7 +9587,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__M__wit",
@@ -9979,7 +10002,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__S__bruin",
@@ -10393,7 +10417,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__S__wit",
@@ -10807,7 +10832,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__XL__bruin",
@@ -11221,7 +11247,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "kruisem__XL__wit",
@@ -11635,7 +11662,8 @@
             }
           ],
           "updated_through": "2026-09-08",
-          "days_since_update": 6
+          "days_since_update": 6,
+          "stale_after_days": 15
         },
         {
           "key": "rungis__L",
@@ -12043,7 +12071,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 21
         },
         {
           "key": "rungis__M",
@@ -12451,7 +12480,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 21
         },
         {
           "key": "rungis__S",
@@ -12859,7 +12889,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 21
         },
         {
           "key": "rungis__XL",
@@ -13267,7 +13298,8 @@
             }
           ],
           "updated_through": "2026-09-10",
-          "days_since_update": 4
+          "days_since_update": 4,
+          "stale_after_days": 21
         },
         {
           "key": "weser_ems_boden__L__bruin",
@@ -13687,7 +13719,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__L__wit",
@@ -14107,7 +14140,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__M__bruin",
@@ -14527,7 +14561,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__M__wit",
@@ -14947,7 +14982,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__S__bruin",
@@ -15367,7 +15403,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__S__wit",
@@ -15787,7 +15824,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__XL__bruin",
@@ -16207,7 +16245,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_boden__XL__wit",
@@ -16627,7 +16666,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__L__bruin",
@@ -17047,7 +17087,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__L__wit",
@@ -17467,7 +17508,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__M__bruin",
@@ -17887,7 +17929,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__M__wit",
@@ -18307,7 +18350,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__S__bruin",
@@ -18727,7 +18771,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__S__wit",
@@ -19147,7 +19192,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__XL__bruin",
@@ -19567,7 +19613,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         },
         {
           "key": "weser_ems_konv__XL__wit",
@@ -19987,7 +20034,8 @@
             }
           ],
           "updated_through": "2026-09-11",
-          "days_since_update": 3
+          "days_since_update": 3,
+          "stale_after_days": 14
         }
       ]
     },
@@ -20198,7 +20246,8 @@
             }
           ],
           "updated_through": "2026-09-14",
-          "days_since_update": 0
+          "days_since_update": 0,
+          "stale_after_days": 14
         }
       ]
     },
@@ -20613,7 +20662,8 @@
             }
           ],
           "updated_through": "2026-08-31",
-          "days_since_update": 14
+          "days_since_update": 14,
+          "stale_after_days": 14
         }
       ]
     }

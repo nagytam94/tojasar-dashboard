@@ -27,7 +27,12 @@ EXPORT_PATH = PROJECT_ROOT / "dashboard" / "data.json"
 # maximumon ulne -> garantalt fals riasztas. 21 nap = egy teljes cikluspnyi
 # margo a mert maximum folott, es egy tenylegesen befagyott forrast (60+ nap)
 # tovabbra is hamar elkap.
+# Tartalek kuszob azoknak a sorozatoknak, amiknek nincs eleg tortenete sajat
+# kuszob szamitasahoz (2-nel kevesebb res).
 STALE_AFTER_DAYS = 21
+# Also korlat a sorozatonkenti kuszobre — egy nagyon suru sorozat se riasszon
+# mar par nap utan.
+MIN_STALE_AFTER_DAYS = 10
 
 
 SCHEMA_SQL = """
@@ -195,57 +200,145 @@ def upsert_observation(
     )
 
 
+def _store_one(conn: sqlite3.Connection, obs: dict[str, Any]) -> None:
+    """Egyetlen megfigyeles beirasa. Kulon fuggveny, hogy a hivo oldalon a
+    hibakezeles ne tordelje szet a behuzast."""
+    series_id = get_or_create_series(
+        conn,
+        key=obs["key"],
+        label=obs["label"],
+        country=obs.get("country"),
+        category=obs["category"],
+        size=obs.get("size"),
+        color=obs.get("color"),
+        unit=obs.get("unit") or EXPORT_UNIT,
+        source_url=obs.get("source_url") or "",
+    )
+    upsert_observation(
+        conn,
+        series_id=series_id,
+        week_iso=obs["week_iso"],
+        observed_date=obs.get("observed_date"),
+        price=float(obs["price"]),
+        change=obs.get("change"),
+        native_price=obs.get("native_price"),
+        native_unit=obs.get("native_unit"),
+        fx_rate=obs.get("fx_rate"),
+        fx_rate_unit=obs.get("fx_rate_unit"),
+        fx_rate_date=obs.get("fx_rate_date"),
+        fx_source=obs.get("fx_source"),
+        fetched_at=obs["fetched_at"],
+        raw=obs,
+    )
+
+
 def store_observations(
     observations: list[dict[str, Any]],
     db_path: Path = DB_PATH,
-) -> int:
+) -> tuple[int, list[str]]:
+    """Visszaad: (elmentett darabszam, kihagyott sorok leirasa).
+
+    RED1 N-2 (2026-09-14): a kihagyott sorokat VISSZA KELL ADNI, nem csak
+    naplozni. Enelkul a hivo nem tudja megkulonboztetni azt, hogy "nem kinaltak
+    sort" attol, hogy "2700-at kinaltak es 2700-at elutasitottunk" — az elso
+    valtozat ebbol nema sikert csinalt egy teljes napi adatvesztesbol.
+    """
     with connect(db_path) as conn:
         init_db(conn)
         count = 0
         skipped: list[str] = []
         for obs in observations:
-          try:
-            series_id = get_or_create_series(
-                conn,
-                key=obs["key"],
-                label=obs["label"],
-                country=obs.get("country"),
-                category=obs["category"],
-                size=obs.get("size"),
-                color=obs.get("color"),
-                unit=obs.get("unit") or EXPORT_UNIT,
-                source_url=obs.get("source_url") or "",
-            )
-            upsert_observation(
-                conn,
-                series_id=series_id,
-                week_iso=obs["week_iso"],
-                observed_date=obs.get("observed_date"),
-                price=float(obs["price"]),
-                change=obs.get("change"),
-                native_price=obs.get("native_price"),
-                native_unit=obs.get("native_unit"),
-                fx_rate=obs.get("fx_rate"),
-                fx_rate_unit=obs.get("fx_rate_unit"),
-                fx_rate_date=obs.get("fx_rate_date"),
-                fx_source=obs.get("fx_source"),
-                fetched_at=obs["fetched_at"],
-                raw=obs,
-            )
-            count += 1
-          except Exception as exc:
-            # F-7 (RED1, 2026-09-14): egyetlen rossz sor NEM dobhatja el a tobbi
-            # forras kotegét. Ugyanaz a hibaosztaly, mint az eredeti gyoker, csak
-            # egy rezsivel lejjebb: ott a kapu allt rossz helyen, itt a kivetel
-            # vinne magaval az egesz tranzakciot.
-            skipped.append(f"{obs.get('key')}/{obs.get('week_iso')}: {exc}")
+            try:
+                _store_one(conn, obs)
+                count += 1
+            except Exception as exc:  # noqa: BLE001 - szandekos: egy rossz sor
+                # nem dobhatja el a tobbi forras koteget. A hivo a visszaadott
+                # listabol tudja meg, hogy tortent-e veszteseg.
+                skipped.append(f"{obs.get('key')}/{obs.get('week_iso')}: {exc}")
         if skipped:
             print(
-                f"warn: {len(skipped)} observation(s) skipped: " + "; ".join(skipped[:5]),
+                f"warn: {len(skipped)} observation(s) skipped: "
+                + "; ".join(skipped[:5]),
                 file=sys.stderr,
             )
         conn.commit()
-    return count
+    return count, skipped
+
+
+def _gap_days(days: list[date]) -> list[int]:
+    return [(days[i + 1] - days[i]).days for i in range(len(days) - 1)]
+
+
+def series_freshness(
+    db_path: Path = DB_PATH,
+    as_of: date | None = None,
+) -> list[dict[str, Any]]:
+    """Sorozatonkenti frissesseg, KOZVETLENUL a DB-bol.
+
+    RED1 N-2: ez szandekosan NEM fugg az exporttol. Az elso valtozatban az
+    elavultsagot csak az export agon szamoltuk, ezert pont akkor voltunk vakok
+    ra, amikor a rendszer a leginkabb romlott (nem mentodott semmi -> nincs
+    export -> nincs frissesseg-adat -> "minden rendben").
+
+    A kuszob SOROZATONKENTI (RED1 Q3): a globalis 21 nap a legrosszabbul
+    viselkedo sorozat (rungis, 14 napos termeszetes res) margojat adta mind az
+    50-nek, holott 46-nak a legnagyobb termeszetes rese 8 nap. Sajat tortenetbol:
+    `max_res + median_res`, alsó korlattal.
+    """
+    as_of = as_of or datetime.now(ZoneInfo("Europe/Bucharest")).date()
+    with connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT s.id AS series_id, s.key, s.label, s.size, s.color,
+                   o.observed_date
+            FROM series s
+            JOIN observation o ON o.series_id = s.id
+            WHERE o.observed_date IS NOT NULL
+            ORDER BY s.id, o.observed_date
+            """,
+        ).fetchall()
+
+    per: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        entry = per.setdefault(
+            row["series_id"],
+            {"key": row["key"], "label": row["label"],
+             "size": row["size"], "color": row["color"], "days": []},
+        )
+        try:
+            entry["days"].append(date.fromisoformat(row["observed_date"]))
+        except ValueError:
+            continue
+
+    out: list[dict[str, Any]] = []
+    for entry in per.values():
+        days = sorted(set(entry["days"]))
+        if not days:
+            continue
+        gaps = _gap_days(days)
+        if len(gaps) >= 2:
+            gaps_sorted = sorted(gaps)
+            median = gaps_sorted[len(gaps_sorted) // 2]
+            threshold = max(max(gaps) + median, 2 * median, MIN_STALE_AFTER_DAYS)
+        else:
+            threshold = STALE_AFTER_DAYS
+        parts = [entry["key"]]
+        if entry["size"]:
+            parts.append(str(entry["size"]))
+        if entry["color"]:
+            parts.append(str(entry["color"]))
+        out.append(
+            {
+                "key": "__".join(parts),
+                "label": entry["label"],
+                "updated_through": days[-1].isoformat(),
+                "days_since_update": (as_of - days[-1]).days,
+                "stale_after_days": threshold,
+                "stale": (as_of - days[-1]).days > threshold,
+            }
+        )
+    out.sort(key=lambda item: item["days_since_update"], reverse=True)
+    return out
 
 
 def export_data_json(
@@ -331,39 +424,36 @@ def export_data_json(
     # Frissesseg — kimondva, nem elrejtve. Az export a DB-bol dolgozik, ezert
     # szerkezetileg mindig teljes; ettol meg egy-egy sorozat lehet regi. Ha ezt
     # nem irjuk ki, a regi adat frissnek latszik (hamis zold).
+    # EGY igazsag-forras: ugyanaz a series_freshness(), amit a scraper is hiv —
+    # igy a felulet es a kilepesi kod nem mondhat mast.
     as_of = datetime.now(ZoneInfo("Europe/Bucharest")).date()
-    stale: list[dict[str, Any]] = []
+    freshness_rows = series_freshness(db_path, as_of=as_of)
+    by_key = {row["key"]: row for row in freshness_rows}
     for series in series_map.values():
-        dates = [point["date"] for point in series["points"] if point.get("date")]
-        if not dates:
-            series["updated_through"] = None
-            series["days_since_update"] = None
-            continue
-        updated_through = max(dates)
-        series["updated_through"] = updated_through
-        try:
-            age_days = (as_of - date.fromisoformat(updated_through)).days
-        except ValueError:
-            series["days_since_update"] = None
-            continue
-        series["days_since_update"] = age_days
-        if age_days > stale_after_days:
-            stale.append(
-                {
-                    "key": series["key"],
-                    "label": series["label"],
-                    "updated_through": updated_through,
-                    "days_since_update": age_days,
-                }
-            )
-    stale.sort(key=lambda item: item["days_since_update"], reverse=True)
+        row = by_key.get(series["key"])
+        series["updated_through"] = row["updated_through"] if row else None
+        series["days_since_update"] = row["days_since_update"] if row else None
+        series["stale_after_days"] = row["stale_after_days"] if row else None
+    stale = [
+        {
+            "key": row["key"],
+            "label": row["label"],
+            "updated_through": row["updated_through"],
+            "days_since_update": row["days_since_update"],
+            "stale_after_days": row["stale_after_days"],
+        }
+        for row in freshness_rows
+        if row["stale"]
+    ]
 
     payload = {
         "generated_at": datetime.now(ZoneInfo("Europe/Bucharest")).isoformat(timespec="seconds"),
         "schema_version": "0.5",
         "freshness": {
             "as_of": as_of.isoformat(),
-            "stale_after_days": stale_after_days,
+            # sorozatonkenti kuszob van; ez csak a tartalek-ertek azoknak,
+            # amiknek nincs eleg tortenete
+            "fallback_stale_after_days": stale_after_days,
             "series_total": len(series_map),
             "series_stale": stale,
         },

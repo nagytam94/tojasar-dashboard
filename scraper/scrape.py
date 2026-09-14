@@ -23,10 +23,10 @@ from urllib3.util.retry import Retry
 
 try:
     from .sources import EXPORT_UNIT, Source, get_sources
-    from .store import DB_PATH, EXPORT_PATH, export_data_json, store_observations
+    from .store import DB_PATH, EXPORT_PATH, export_data_json, series_freshness, store_observations
 except ImportError:  # direct script execution
     from sources import EXPORT_UNIT, Source, get_sources
-    from store import DB_PATH, EXPORT_PATH, export_data_json, store_observations
+    from store import DB_PATH, EXPORT_PATH, export_data_json, series_freshness, store_observations
 
 
 USER_AGENT = "Cloudus-Tojasar-Scraper/0.1 (+local dashboard; contact: owner)"
@@ -578,6 +578,78 @@ def scrape_source(session: requests.Session, source: Source) -> list[dict[str, A
     return observations
 
 
+RETRY_TOTAL = 3
+RETRY_BACKOFF_FACTOR = 1.0
+RETRY_STATUS = (500, 502, 503, 504)
+
+
+def build_session() -> requests.Session:
+    """A scraper HTTP-sessionje, retry-rel.
+
+    Kulon fuggveny, mert kulonben TESZTELHETETLEN (RED1 mutacios meres: a
+    retry-reteg torlese nyomtalanul atment a teszten). Igy egy lokalis
+    http.server-rel merhető, hogy tenyleg ujraprobal-e.
+
+    Miert kell: a naploban rogzitett OSSZES eddigi bukas tranziens kulso hiba
+    volt (500 / 504 / read timeout), es forrasonkent EGYETLEN probalkozas ment.
+    A riasztas-zaj gyokere itt van, nem a kilepesi kod szemantikajaban.
+    """
+    session = requests.Session()
+    session.headers.update(
+        {"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"}
+    )
+    retry = Retry(
+        total=RETRY_TOTAL,
+        backoff_factor=RETRY_BACKOFF_FACTOR,
+        status_forcelist=RETRY_STATUS,
+        allowed_methods=frozenset({"GET", "POST"}),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+ALERT_STATE_NAME = "alert-state.json"
+
+
+def _alert_state_path(db_path: Path) -> Path:
+    return db_path.parent / ALERT_STATE_NAME
+
+
+def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
+    """Melyik sorozat valt MOST elavultta — esemeny, nem allapot.
+
+    RED1 N-1 (2026-09-14): az elso valtozat az ALLAPOTRA riasztott, ezert egy
+    tartosan lemarado forras miatt Tomi MINDEN REGGEL kapott volna riasztast.
+    A sajat szabalyunk (reference-esemenyt-naplozz-ne-allapotot) szerint a
+    jelzes a kuszob ATLEPESEHEZ kotodik. A folyamatos allapotot a dashboard
+    figyelmezteto savja mutatja, nem a riasztas.
+
+    A visszaallo sorozat kikerul a nyilvantartasbol, igy ha kesobb ujra
+    elavul, ujra szol egyszer.
+    """
+    path = _alert_state_path(db_path)
+    current = sorted(item["key"] for item in stale)
+    previous: list[str] = []
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8")).get("reported_stale", [])
+    except FileNotFoundError:
+        pass
+    except Exception as exc:  # serult allapotfajl ne allitsa meg a futast
+        warn(f"alert state unreadable ({exc}); treating every stale series as new")
+    fresh = [key for key in current if key not in set(previous)]
+    try:
+        path.write_text(
+            json.dumps({"reported_stale": current}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception as exc:
+        warn(f"alert state not written ({exc})")
+    return fresh
+
+
 # Kilepesi kodok — a run_daily.sh ezekre tamaszkodik.
 #   0 = minden forras rendben
 #   1 = valodi baj, Tomit ertesiteni kell
@@ -598,22 +670,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"})
-    # RED1 F-4 (2026-09-14): a naploban rogzitett OSSZES bukas tranziens kulso hiba
-    # volt (500 / 504 / read timeout), es egyetlen probalkozas ment forrasonkent.
-    # A riasztas-zaj gyokere itt van, nem a kilepesi kodban — ezert ujraprobalunk,
-    # mielott egy forrast bukottnak nyilvanitanank.
-    retry = Retry(
-        total=3,
-        backoff_factor=1.0,
-        status_forcelist=(500, 502, 503, 504),
-        allowed_methods=frozenset({"GET", "POST"}),
-        raise_on_status=False,
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
+    session = build_session()
 
     sources = list(get_sources(args.sources))
     all_observations: list[dict[str, Any]] = []
@@ -638,62 +695,86 @@ def main(argv: list[str] | None = None) -> int:
     # szerkezetileg soha nem lehetett "reszleges" — a regi "refusing partial
     # export" uzenet felrevezetett: nem exportot tagadott meg, hanem mentest.
     # Ezert: eloszor MENTUNK es EXPORTALUNK, a hiba-dontes utana jon.
-    stored = 0
+    stored, skipped = 0, []
     if all_observations:
-        stored = store_observations(all_observations, args.db)
+        stored, skipped = store_observations(all_observations, args.db)
         print(f"stored/upserted {stored} observations in {args.db}")
     else:
         warn("no observations from any source - nothing to store")
 
-    stale: list[dict[str, Any]] = []
+    # RED1 N-2 (2026-09-14): a frissesseg MINDIG a DB-bol jon, az exporttol
+    # FUGGETLENUL. Az elso valtozat az export agan szamolta, ezert pont akkor
+    # volt vak ra, amikor a rendszer a leginkabb romlott.
+    stale = [row for row in series_freshness(args.db) if row["stale"]]
+    if stale:
+        print(f"stale series: {len(stale)}")
+
     if args.no_export:
         pass
     elif stored == 0:
-        # RED1 F-3 (2026-09-14): ha semmi nem kerult a DB-be, az export csak egy
-        # FRISS generated_at-et irna a regi adat foleé — a dashboard fejlece "ma
-        # frissult"-et mutatna egy teljes kieses napjan. A DB nem valtozott, tehat
-        # nincs mit exportalni. Inkabb legyen a fajl lathatoan regi.
+        # RED1 F-3: ha semmi nem kerult a DB-be, az export csak egy FRISS
+        # generated_at-et irna a regi adat foleé — a dashboard fejlece "ma
+        # frissult"-et mutatna egy teljes kieses napjan. A DB nem valtozott,
+        # tehat nincs mit exportalni. Inkabb legyen a fajl lathatoan regi.
         warn("nothing stored - data.json left untouched (no fake generated_at)")
     else:
         payload = export_data_json(args.db, args.out)
         count = sum(len(category["series"]) for category in payload["categories"])
         print(f"exported {count} series in {len(payload['categories'])} categories to {args.out}")
-        stale = payload.get("freshness", {}).get("series_stale", [])
-        if stale:
-            print(f"stale series: {len(stale)}")
 
     for failure in failures:
         warn(f"source failure: {failure}")
 
-    # RED1 F-2 (2026-09-14): ez a vizsgalat a "nem volt hiba" ag ELOTT all.
-    # Korabban utana allt, es igy pont abban az esetben volt elerhetetlen,
-    # amiert keszult: ha minden forras HTTP 200-at ad, de BEFAGYOTT adatot, akkor
-    # `failures` ures -> a fuggveny az EXIT_OK agon kilepett, es egy 60 napja allo
-    # dashboard is "rendben"-nek szamitott. Ugyanaz a hibaforma, mint az eredeti
-    # gyoker (korai return atugorja a kesobbi dontest) — ezert all itt.
-    # Az elavultsagot a DB-ben levo TENYLEGES kor donti el, nem a mai bukas.
-    if stale:
-        details = ", ".join(
-            f"{item['key']} ({item['days_since_update']}d)" for item in stale[:5]
-        )
-        warn(f"{len(stale)} series stale beyond threshold: {details}")
-        return EXIT_ALERT
+    # --- A DONTES. Sorrend: eloszor a rendszerszintu baj, aztan az ESEMENY,
+    # vegul a degradalt allapotok. Minden ag a mentes es az export UTAN van —
+    # ez a javitas lenyege: a hiba-dontes soha ne elozze meg a hatast.
 
-    if not failures:
-        return EXIT_OK
-
-    # Valodi baj: egyetlen forras sem adott adatot.
+    # 1) Egyetlen forras sem adott adatot.
     if not all_observations:
         warn(f"all {len(sources)} sources failed - no data stored")
         return EXIT_ALERT
 
-    # Atmeneti, egy-napos forraskieses: az adat megvan, a dashboard friss.
-    # Ez NEM ebreszti fel Tomit.
-    warn(
-        f"degraded: {len(failures)} of {len(sources)} sources failed; "
-        f"{stored} observations stored and exported anyway"
-    )
-    return EXIT_DEGRADED
+    # 2) Kinaltunk sorokat, de EGY SEM ment be (RED1 N-2: ez korabban nema
+    #    siker volt — 2600-bol 2599 eldobva is exit 0-t adott).
+    if stored == 0:
+        warn(
+            f"all {len(all_observations)} offered observations were rejected - "
+            f"nothing stored"
+        )
+        return EXIT_ALERT
+
+    # 3) UJONNAN elavult sorozat -> riasztas EGYSZER (esemeny, nem allapot).
+    newly = newly_stale_series(args.db, stale)
+    if newly:
+        by_key = {item["key"]: item for item in stale}
+        details = ", ".join(
+            f"{key} ({by_key[key]['days_since_update']}d > {by_key[key]['stale_after_days']}d)"
+            for key in newly[:5]
+        )
+        warn(f"{len(newly)} series newly stale: {details}")
+        return EXIT_ALERT
+
+    # 4) Degradalt allapotok: latszanak a naploban es a dashboard savjan,
+    #    de NEM ebresztik fel Tomit.
+    if skipped:
+        warn(f"degraded: {len(skipped)} observation(s) rejected, {stored} stored")
+        return EXIT_DEGRADED
+
+    if stale:
+        warn(
+            f"degraded: {len(stale)} series stale (already reported) - "
+            f"see dashboard freshness banner"
+        )
+        return EXIT_DEGRADED
+
+    if failures:
+        warn(
+            f"degraded: {len(failures)} of {len(sources)} sources failed; "
+            f"{stored} observations stored and exported anyway"
+        )
+        return EXIT_DEGRADED
+
+    return EXIT_OK
 
 
 if __name__ == "__main__":
