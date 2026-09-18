@@ -13,10 +13,19 @@ send_alert() {
   local exit_code="${1:-1}"
   set +e
 
-  local when err_tail text
+  local when err_tail text retry_lines
   when="$(date '+%F %H:%M')"
   if [[ -f "$ERR_LOG" ]]; then
-    err_tail="$(tail -n 10 "$ERR_LOG")"
+    # A retry-sorokat KISZURJUK a riasztasbol (RED1 M-1, 2026-09-18): merve, hogy
+    # egy stale-riasztasnal a tail 10 sorabol 9 lehet retry-zaj, es az erdemi
+    # kontextus kiszorul. A dontő sor mindig megmarad (a ciklus UTAN irodik), de
+    # a kore adott sorok is kellenek. A retry TENYET nem nyeljuk el: a szamat
+    # odairjuk — egy 50-es szam onmagaban diagnozis.
+    retry_lines="$(grep -c '^warn: retry: ' "$ERR_LOG" || true)"
+    err_tail="$(grep -v '^warn: retry: ' "$ERR_LOG" | tail -n 10)"
+    if [[ "${retry_lines:-0}" -gt 0 ]]; then
+      err_tail="$err_tail"$'\n'"(+${retry_lines} retry-sor kihagyva a naplóból)"
+    fi
   else
     err_tail="(err.log nem található: $ERR_LOG)"
   fi
@@ -50,7 +59,10 @@ send_alert() {
 
   # "megkiseretlem" marker — ez MINDIG letrejon. A tesztek erre allitanak, ha
   # azt kerdezik, riasztott-e egyaltalan; a fenti marker azt jelenti, KIMENT.
-  : > "${TOJASAR_ALERT_ATTEMPT_MARKER:-$PROJECT_ROOT/data/.alert-attempted}"
+  # A marker a kuldott SZOVEGET is tartalmazza (2026-09-18): igy utolag latszik,
+  # mit tartalmazott a riasztas — es igy merheto, hogy a retry-zaj tenyleg
+  # kimarad belole. Enelkul a szures nem lenne bizonyithato, csak remelheto.
+  printf '%s\n' "$text" > "${TOJASAR_ALERT_ATTEMPT_MARKER:-$PROJECT_ROOT/data/.alert-attempted}"
   set -e
 }
 
@@ -97,8 +109,33 @@ fi
 # le sem futott (a dashboard befagyva maradt). A `|| ...` alak viszont a
 # parancsot a trap alol is kiveszi. A trap marad a helyen: a git-blokk hibait
 # tovabbra is jelentenie kell.
+# ---------------------------------------------------------------------------
+# KULSO IDOKORLAT (RED1 H-2, 2026-09-18).
+# A retry-ablak bovitese utan a legrosszabb eset ~1,5 ora: ha egy forras nem
+# hibazik, hanem HALLGAT, akkor 6 kiserlet x 30 mp timeout + ~59 mp rahagyas =
+# 239 mp EGY hivasra, 13 forras x 2 hivas. Eddig SEMMI nem vagta el (nincs
+# ExitTimeOut a plistben, nincs timeout-minutes a CI-ben) — es a riasztas is
+# csak a scrape.py visszaterese UTAN fut, tehat addig a rendszer NEMA.
+#
+# TELJES UT kell: a `timeout` a /opt/homebrew/bin-ben van, a launchd
+# alapertelmezett PATH-jan (/usr/bin:/bin:/usr/sbin:/sbin) NINCS RAJTA — merve,
+# negativ kontrollal. A `-x` guard miatt hianyzo binarisnal a futas
+# idokorlat NELKUL megy tovabb (fail-open): egy hianyzo mereszkoz nem
+# akaszthatja meg a napi adatgyujtest, de KIMONDJA magat a naploban.
+# ---------------------------------------------------------------------------
+TIMEOUT_BIN="${TOJASAR_TIMEOUT_BIN:-/opt/homebrew/bin/timeout}"
+TIMEOUT_SECONDS="${TOJASAR_TIMEOUT_SECONDS:-900}"
+
 scrape_rc=0
-/usr/bin/python3 scraper/scrape.py || scrape_rc=$?
+if [[ -x "$TIMEOUT_BIN" ]]; then
+  "$TIMEOUT_BIN" "$TIMEOUT_SECONDS" /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
+  if (( scrape_rc == 124 )); then
+    echo "scraper: IDOTULLEPES (${TIMEOUT_SECONDS}s) - a futas felbeszakadt, riasztas kovetkezik" >&2
+  fi
+else
+  echo "warn: idokorlat-binaris nem talalhato ($TIMEOUT_BIN) - a scraper IDOKORLAT NELKUL fut" >&2
+  /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
+fi
 
 # ---------------------------------------------------------------------------
 # A SORREND A LENYEG (RED1 N-1, 2026-09-14).

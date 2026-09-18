@@ -1,2 +1,5 @@
 requests>=2.31
 beautifulsoup4>=4.12
+# A build_session() a backoff_max/backoff_jitter parametereket hasznalja: azok
+# CSAK urllib3 2.x-ben leteznek (1.26 alatt TypeError-ral hal meg indulaskor).
+urllib3>=2.0

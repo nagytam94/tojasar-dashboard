@@ -583,6 +583,7 @@ RETRY_TOTAL = 5            # 1 keres + 5 ujraprobalas = 6 kiserlet
 RETRY_BACKOFF_FACTOR = 2.0  # rahagyas: 0 -> 4 -> 8 -> 16 -> 30 (cap) masodperc
 RETRY_BACKOFF_MAX = 30.0
 RETRY_BACKOFF_JITTER = 1.0  # +0..1s veletlen, hogy a 13 forras ne egyszerre terjen vissza
+RETRY_CONNECT = 2           # a "nincs halo" eset gyorsan bukjon (RED1: 60,2 mp/forras -> ~4 mp)
 RETRY_STATUS = (500, 502, 503, 504)
 
 
@@ -610,7 +611,10 @@ class RetryLoggingAdapter(HTTPAdapter):
         try:
             response = super().send(request, **kwargs)
         except Exception as exc:
-            warn(f"retry: {request.method} {_short_url(request.url)} — minden kiserlet elbukott: {exc}")
+            # NEM allitjuk, hogy "minden kiserlet elbukott" (RED1 L-2): ide olyan
+            # kiveteles is erkezik, ami el sem jutott az ujraprobalasig. Amit
+            # biztosan tudunk: a keres elbukott.
+            warn(f"retry: {request.method} {_short_url(request.url)} — a keres elbukott: {exc}")
             raise
         attempts = _retry_attempts(response)
         if attempts > 1:
@@ -624,6 +628,7 @@ class RetryLoggingAdapter(HTTPAdapter):
 def build_session(
     *,
     total: int = RETRY_TOTAL,
+    connect: int = RETRY_CONNECT,
     backoff_factor: float = RETRY_BACKOFF_FACTOR,
     backoff_max: float = RETRY_BACKOFF_MAX,
     backoff_jitter: float = RETRY_BACKOFF_JITTER,
@@ -652,6 +657,7 @@ def build_session(
     )
     retry = Retry(
         total=total,
+        connect=connect,
         backoff_factor=backoff_factor,
         backoff_max=backoff_max,
         backoff_jitter=backoff_jitter,

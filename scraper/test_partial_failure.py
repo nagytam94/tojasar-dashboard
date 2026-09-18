@@ -98,6 +98,25 @@ def rows_on(db: Path, day: date) -> int:
         conn.close()
 
 
+def stored_prices(db: Path, day: date) -> set:
+    """Milyen ARAK allnak a DB-ben erre a napra.
+
+    Azert kell, mert a keszlet eddig KIZAROLAG sorokat szamolt: egy "minden ar
+    x100" tipusu mertekegyseg-hiba 63/63 zolden atment rajta (RED1 M-4 mutacio,
+    2026-09-18). A sor megletenel egy fokkal tobb kerdes, hogy JO-E, ami bement.
+    """
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        return {
+            r[0] for r in conn.execute(
+                "SELECT DISTINCT price FROM observation WHERE observed_date = ?",
+                (day.isoformat(),),
+            )
+        }
+    finally:
+        conn.close()
+
+
 def run_main(db: Path, out: Path, patch):
     before = count_rows(db) if db.exists() else 0
     scrape.scrape_source = patch
@@ -137,13 +156,15 @@ def every_row_bad(session, source):
 
 
 # --- shell-harness -----------------------------------------------------------
-def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool = True):
+def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool = True,
+               sleep_seconds: float = 0, extra_env: dict | None = None, tag: str = "",
+               err_log_seed: list[str] | None = None):
     """A VALODI run_daily.sh, /bin/zsh alatt (ahogy a launchd hivja).
 
     `with_remote=False` -> a `git push` bukik: ezzel meressuk, hogy a trap
     TOVABBRA is jelenti a git-hibakat (pozitiv kontroll).
     """
-    work = tmp / f"shell{exit_code}{'c' if change_data else ''}{'r' if with_remote else 'n'}"
+    work = tmp / f"shell{exit_code}{'c' if change_data else ''}{'r' if with_remote else 'n'}{tag}"
     (work / "scraper").mkdir(parents=True)
     (work / "dashboard").mkdir()
     (work / "data").mkdir()
@@ -154,12 +175,18 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
     )
     (work / "scraper" / "run_daily.sh").write_text(script, encoding="utf-8")
     body = "import sys\n"
+    if sleep_seconds:
+        # A hallgato forras szimulacioja: a scraper EL, csak nem ter vissza.
+        body += f"import time\ntime.sleep({sleep_seconds})\n"
     if change_data:
         body += ('import pathlib, json\n'
                  'pathlib.Path("dashboard/data.json").write_text(json.dumps({"x":2}))\n')
     body += f"sys.exit({exit_code})\n"
     (work / "scraper" / "scrape.py").write_text(body, encoding="utf-8")
     (work / "dashboard" / "data.json").write_text('{"x":1}\n', encoding="utf-8")
+    if err_log_seed is not None:
+        (work / "data" / "scraper.err.log").write_text(
+            "\n".join(err_log_seed) + "\n", encoding="utf-8")
     marker = work / "data" / ".alert-attempted"
     env = {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
@@ -168,6 +195,7 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
         "TOJASAR_ALERT_ATTEMPT_MARKER": str(marker),
         "TOJASAR_ALERT_MARKER": str(work / "data" / ".alert-sent"),
     }
+    env.update(extra_env or {})
     setup = [["git", "init", "-q", "."], ["git", "add", "-A"],
              ["git", "-c", "user.name=t", "-c", "user.email=t@t",
               "commit", "-qm", "init"]]
@@ -186,6 +214,7 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
     return {
         "rc": proc.returncode,
         "riasztott": marker.exists(),
+        "riasztas_szovege": marker.read_text(encoding="utf-8") if marker.exists() else "",
         "kezbesitve": (work / "data" / ".alert-sent").exists(),
         "commitok": int(commits),
         "log": proc.stdout + proc.stderr,
@@ -248,6 +277,28 @@ def retry_probe(*, fail_first: int | None = None, **session_kwargs) -> dict:
         thread.join(timeout=5)
 
 
+def live_backoff_window() -> tuple:
+    """Az ELES rahagyas-sorozat es a teljes ablak — ALVAS NELKUL, 0 mp alatt.
+
+    A commit egesz indoka az volt, hogy az ablak 6,7 mp-rol ~1 percre no. Ezt
+    eddig EGYETLEN allitas sem orizte (RED1 M-2): a konfig-meres csak a szorzot
+    nezte, a viselkedes-szonda pedig IDEGEN ertekekkel fut (0.1-es faktorral,
+    hogy gyors legyen). Pont a lenyeg csuszott at kettejuk kozott.
+
+    A Retry sajat `get_backoff_time()`-jat kerdezzuk meg szintetikus elozmennyel,
+    igy a valodi ertekek merhetok anelkul, hogy varnank rajuk.
+    """
+    from urllib3.util.retry import RequestHistory
+
+    retry = scrape.build_session().get_adapter("https://x/").max_retries
+    base = retry.new(backoff_jitter=0.0)  # a veletlen szoras a mercet zajossa tenne
+    waits = []
+    for n in range(1, (retry.total or 0) + 1):
+        hist = tuple(RequestHistory("GET", "https://x/", None, 500, None) for _ in range(n))
+        waits.append(round(base.new(history=hist).get_backoff_time(), 1))
+    return waits, round(sum(waits), 1)
+
+
 def live_retry_config() -> dict:
     """Amit az ELES session tenylegesen visel — nem amit a konstans mond.
 
@@ -260,6 +311,7 @@ def live_retry_config() -> dict:
         "backoff_factor": retry.backoff_factor,
         "backoff_max": retry.backoff_max,
         "backoff_jitter": retry.backoff_jitter,
+        "connect": retry.connect,
         "status_forcelist": tuple(sorted(retry.status_forcelist or ())),
         "post_is_retried": "POST" in (retry.allowed_methods or ()),
     }
@@ -323,10 +375,14 @@ def main() -> int:
         print("\n[A1] EGY forras bukik, a tobbi jo -> a jo adat NEM veszhet el")
         db, out = tmp / "a1.db", tmp / "a1.json"
         seed(db, recent)
-        code, _, _ = run_main(db, out, one_fails)
+        code, before, after = run_main(db, out, one_fails)
         check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
         check("pontosan a 12 jo forras mai sora all a DB-ben", rows_on(db, TODAY),
               len(SOURCE_KEYS) - 1)
+        # A `rows_on` a mai sorra kerdez — de attol meg a REGI adat elveszhetne.
+        # Ezt a dimenziot a regi delta-meres orizte; nem szabad elhagyni (RED1 M-3).
+        check("a meglevo adat nem semmisult meg", after >= before, True)
+
         check("data.json ujragenaralodott", out.exists(), True)
 
         print("\n[A2] MINDEN forras bukik -> riaszt, data.json NEM kap hamis datumot")
@@ -340,9 +396,13 @@ def main() -> int:
         print("\n[A3] MINDEN forras jo -> tiszta siker")
         db, out = tmp / "a3.db", tmp / "a3.json"
         seed(db, recent)
-        code, _, _ = run_main(db, out, all_ok)
+        code, before, after = run_main(db, out, all_ok)
         check("kilepesi kod = EXIT_OK", code, scrape.EXIT_OK)
         check("mind a 13 forras mai sora bement", rows_on(db, TODAY), len(SOURCE_KEYS))
+        check("a meglevo adat nem semmisult meg", after >= before, True)
+        # Nem eleg, hogy BEMENT — az is kerdes, hogy JO-E. Egy "minden ar x100"
+        # mertekegyseg-hiba eddig 63/63 zolden atment (RED1 M-4).
+        check("a tarolt ar egyezik a felkinalttal", stored_prices(db, TODAY), {123.4})
 
         print("\n[A4] EGY rossz sor nem dobhatja el a tobbi forras koteget")
         db, out = tmp / "a4.db", tmp / "a4.json"
@@ -354,9 +414,11 @@ def main() -> int:
         print("\n[A5] MINDEN sor elutasitva -> RIASZT (nem nema siker) [RED1 N-2]")
         db, out = tmp / "a5.db", tmp / "a5.json"
         seed(db, recent)
-        code, _, _ = run_main(db, out, every_row_bad)
+        code, before, after = run_main(db, out, every_row_bad)
         check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
         check("tenyleg semmi nem ment be", rows_on(db, TODAY), 0)
+        check("a meglevo adat nem semmisult meg", after >= before, True)
+
 
         print("\n[A6] A kihagyottak TOBBSEGBEN -> RIASZT, nem csak degradalt [RED1 N-5]")
         db, out = tmp / "a6.db", tmp / "a6.json"
@@ -483,6 +545,12 @@ def main() -> int:
         check("van veletlen szoras (nem egyszerre ter vissza mind)", cfg["backoff_jitter"] > 0, True)
         check("az 500 ujraprobalando", 500 in cfg["status_forcelist"], True)
         check("a POST is (a chart-lekeres az)", cfg["post_is_retried"], True)
+        check("a 'nincs halo' eset kulon, SZUKEBB kereten bukik", cfg["connect"], 2)
+
+        # Az eles ablak — a commit fo allitasa. Alvas nelkul merve (RED1 M-2).
+        waits, ablak = live_backoff_window()
+        check("az eles rahagyas-sorozat 0, 4, 8, 16, 30 mp", waits, [0.0, 4.0, 8.0, 16.0, 30.0])
+        check("az eles ablak osszesen 58 mp", ablak, 58.0)
 
         # A viselkedest KIS rahagyassal merjuk (masodpercek, nem perc), az eles
         # ertekeket a fenti konfig-meres orzi. Igy mindketto gat marad.
@@ -506,6 +574,33 @@ def main() -> int:
         quiet = retry_probe(fail_first=0, backoff_factor=0.1, backoff_max=1.0, backoff_jitter=0.0)
         check("elsore sikeres keres: 1 kiserlet", quiet["hits"], 1)
         check("es NEM zajong a naploban", "retry:" in quiet["stderr"], False)
+
+        print("\n[G] Kulso idokorlat: a NEMA futas nem loghat orakig [RED1 H-2]")
+        # A scraper EL, csak nem ter vissza (hallgato forras). Eddig semmi nem
+        # vagta el: se a shell, se a plist, se a CI.
+        g1 = shell_case(tmp, 0, True, sleep_seconds=3, tag="to",
+                        extra_env={"TOJASAR_TIMEOUT_SECONDS": "1"})
+        check("idotullepesnel a kilepesi kod 124", g1["rc"], 124)
+        check("es RIASZT (nem marad nema)", g1["riasztott"], True)
+        check("a naplo kimondja az idotullepest", "IDOTULLEPES" in g1["log"], True)
+
+        # FAIL-OPEN kontroll: hianyzo idokorlat-binaris nem akaszthatja meg a napi
+        # adatgyujtest. (A `timeout` a /opt/homebrew/bin-ben van, a launchd
+        # alapertelmezett PATH-jan NINCS rajta — ezert kell teljes ut es guard.)
+        g2 = shell_case(tmp, 0, True, tag="nobin",
+                        extra_env={"TOJASAR_TIMEOUT_BIN": "/nonexistent/timeout"})
+        check("hianyzo idokorlat-binarisnal a futas ATTOL MEG lemegy", g2["rc"], 0)
+        check("es nem riaszt miatta", g2["riasztott"], False)
+        check("de kimondja, hogy idokorlat nelkul fut", "IDOKORLAT NELKUL" in g2["log"], True)
+
+        # A riasztas olvashatosaga: a tail 10 sorat a retry-zaj felemesztheti
+        # (RED1 M-1 merte: stale-riasztasnal 9/10 sor lehet retry).
+        zaj = ["warn: retry: GET https://x/y — 6. kiserletre HTTP 500"] * 12
+        g3 = shell_case(tmp, 1, False, tag="zaj", err_log_seed=zaj + ["warn: A LENYEGI HIBA"])
+        check("a riasztasbol a retry-zaj kimarad", "retry: GET" in g3["riasztas_szovege"], False)
+        check("de az erdemi sor BENT marad", "A LENYEGI HIBA" in g3["riasztas_szovege"], True)
+        check("es a kihagyott sorok szama meg van nevezve",
+              "+12 retry-sor" in g3["riasztas_szovege"], True)
 
         print("\n[F] renderFreshness regi/hianyos sement sem dol el [RED1 M2 res]")
         ui = render_freshness_cases(tmp)
