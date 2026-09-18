@@ -19,6 +19,9 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
+import platform
+import shutil
 import subprocess
 import sqlite3
 import sys
@@ -36,6 +39,16 @@ sys.path.insert(0, str(SCRAPER_DIR))
 import scrape  # noqa: E402
 import store  # noqa: E402
 from sources import get_sources  # noqa: E402
+
+# A run_daily.sh a Mac-en a homebrew-utat hasznalja (a launchd alap-PATH-jan
+# nincs `timeout`), a CI viszont Linuxon fut, ahol a /usr/bin/timeout az igaz.
+# A MECHANIZMUST (vag-e az idokorlat) a ket platformon ugyanugy kell merni, a
+# produkcios UTVONAL helyesseget pedig kulon, csak a Mac-en.
+# 2026-09-18: az elso valtozat ezt osszekeverte — a teszt a homebrew-utat
+# varta el, es a CI-ben mind a harom idokorlat-allitas elbukott. A gat jo volt,
+# a merce keresett rossz helyen.
+TIMEOUT_BIN = shutil.which("timeout") or shutil.which("gtimeout") or ""
+PROD_TIMEOUT_BIN = Path("/opt/homebrew/bin/timeout")
 
 TODAY = date.today()
 SOURCE_KEYS = [s.key for s in get_sources(None)]
@@ -578,8 +591,15 @@ def main() -> int:
         print("\n[G] Kulso idokorlat: a NEMA futas nem loghat orakig [RED1 H-2]")
         # A scraper EL, csak nem ter vissza (hallgato forras). Eddig semmi nem
         # vagta el: se a shell, se a plist, se a CI.
+        check("van idokorlat-binaris, amivel merni lehet", bool(TIMEOUT_BIN), True)
+        if platform.system() == "Darwin":
+            # A PRODUKCIOS utvonal helyessege — ezt csak a Mac-en van ertelme
+            # kerdezni, mert a launchd ott hivja a run_daily.sh-t.
+            check("a produkcios idokorlat-binaris letezik es futtathato",
+                  PROD_TIMEOUT_BIN.is_file() and os.access(PROD_TIMEOUT_BIN, os.X_OK), True)
         g1 = shell_case(tmp, 0, True, sleep_seconds=3, tag="to",
-                        extra_env={"TOJASAR_TIMEOUT_SECONDS": "1"})
+                        extra_env={"TOJASAR_TIMEOUT_SECONDS": "1",
+                                   "TOJASAR_TIMEOUT_BIN": TIMEOUT_BIN})
         check("idotullepesnel a kilepesi kod 124", g1["rc"], 124)
         check("es RIASZT (nem marad nema)", g1["riasztott"], True)
         check("a naplo kimondja az idotullepest", "IDOTULLEPES" in g1["log"], True)
