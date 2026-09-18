@@ -12,3 +12,7 @@ scraper/__pycache__/
 # riasztas-esemenyek nyilvantartasa nem a repo dolga).
 data/alert-state.json
 data/.alert-sent
+# 2026-09-18 ota TARTALMAT hordoz (a kuldott riasztas szoveget, benne naplo-
+# reszletekkel es belso utvonalakkal) — a repo publikus. RED1 M-3.
+data/.alert-attempted
+data/.timeout-bin-missing

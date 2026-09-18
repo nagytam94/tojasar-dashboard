@@ -27,6 +27,12 @@ jobs:
       # atmenne a kapun es elesben bukna. (RED1 2. kor megjegyzese.)
       - name: Ertelmezo (a produkcios utvonal)
         run: /usr/bin/python3 --version
+      # A macOS NEM szallit `timeout`-ot (merve: /usr/bin, /bin, /usr/sbin — egyik
+      # sem tartalmazza), a run_daily.sh kulso idokorlat-gatja viszont azt hivja.
+      # Enelkul a CI a fail-open agat merne, es a gat NEMAN kikapcsolva maradna:
+      # a 35345077258-as futas pontosan az "idokorlat ki" mutacio alairasat adta.
+      - name: coreutils (a `timeout` a gat merese)
+        run: brew list coreutils >/dev/null 2>&1 || brew install coreutils
       - name: Fuggosegek
         run: /usr/bin/python3 -m pip install --user --disable-pip-version-check -r scraper/requirements.txt
       - name: Halozat nelkuli regresszios tesztek

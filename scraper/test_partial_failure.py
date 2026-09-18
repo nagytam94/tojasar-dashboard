@@ -40,13 +40,19 @@ import scrape  # noqa: E402
 import store  # noqa: E402
 from sources import get_sources  # noqa: E402
 
-# A run_daily.sh a Mac-en a homebrew-utat hasznalja (a launchd alap-PATH-jan
-# nincs `timeout`), a CI viszont Linuxon fut, ahol a /usr/bin/timeout az igaz.
-# A MECHANIZMUST (vag-e az idokorlat) a ket platformon ugyanugy kell merni, a
-# produkcios UTVONAL helyesseget pedig kulon, csak a Mac-en.
-# 2026-09-18: az elso valtozat ezt osszekeverte — a teszt a homebrew-utat
-# varta el, es a CI-ben mind a harom idokorlat-allitas elbukott. A gat jo volt,
-# a merce keresett rossz helyen.
+# A `timeout` helye kornyezetenkent mas, a MECHANIZMUS viszont ugyanaz. Ezert a
+# teszt a tenylegesen elerheto binarissal mer, a PRODUKCIOS utvonal helyesseget
+# pedig kulon allitas orzi (csak Darwinon — a launchd ott hivja a run_daily.sh-t,
+# es az alap-PATH-jan nincs `timeout`).
+#
+# 2026-09-18, KET egymasra epulo hiba ugyanezen a ponton:
+#   1. a teszt a homebrew-utat varta el -> a CI-ben 3 allitas elbukott;
+#   2. a javitas kommentje azt allitotta, hogy "a CI Linuxon fut" — ez MERES
+#      NELKULI feltetelezes volt. A `tests.yml` SZANDEKOSAN `macos-latest`
+#      (a zsh-szemantika miatt), es a macOS egyaltalan nem szallit `timeout`-ot,
+#      ezert a CI-futas 3 helyett 5 bukast adott.
+# A megoldas nem itt van, hanem a workflow-ban: `brew install coreutils`. Ez a
+# ket sor csak azt biztositja, hogy a mechanizmus barhol merheto legyen.
 TIMEOUT_BIN = shutil.which("timeout") or shutil.which("gtimeout") or ""
 PROD_TIMEOUT_BIN = Path("/opt/homebrew/bin/timeout")
 
@@ -171,7 +177,7 @@ def every_row_bad(session, source):
 # --- shell-harness -----------------------------------------------------------
 def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool = True,
                sleep_seconds: float = 0, extra_env: dict | None = None, tag: str = "",
-               err_log_seed: list[str] | None = None):
+               err_log_seed: list[str] | None = None, runtime_err_lines: list[str] | None = None):
     """A VALODI run_daily.sh, /bin/zsh alatt (ahogy a launchd hivja).
 
     `with_remote=False` -> a `git push` bukik: ezzel meressuk, hogy a trap
@@ -188,6 +194,15 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
     )
     (work / "scraper" / "run_daily.sh").write_text(script, encoding="utf-8")
     body = "import sys\n"
+    if runtime_err_lines:
+        # Elesben a launchd iranyitja a stderr-t az err.log-ba, tehat a futas
+        # KOZBEN keletkezo sorok odakerulnek. A harness ezt utanozza: a hamis
+        # scraper maga fuzi hozza oket. A kulonbseg lenyeges — a riasztas csak a
+        # MOSTANI futas sorait mutatja, es ezt csak igy lehet merni.
+        body += ("import pathlib\n"
+                 "_p = pathlib.Path('data/scraper.err.log')\n"
+                 "_p.write_text((_p.read_text() if _p.exists() else '') + "
+                 f"{'chr(10)'}.join({runtime_err_lines!r}) + chr(10))\n")
     if sleep_seconds:
         # A hallgato forras szimulacioja: a scraper EL, csak nem ter vissza.
         body += f"import time\ntime.sleep({sleep_seconds})\n"
@@ -610,17 +625,53 @@ def main() -> int:
         g2 = shell_case(tmp, 0, True, tag="nobin",
                         extra_env={"TOJASAR_TIMEOUT_BIN": "/nonexistent/timeout"})
         check("hianyzo idokorlat-binarisnal a futas ATTOL MEG lemegy", g2["rc"], 0)
-        check("es nem riaszt miatta", g2["riasztott"], False)
         check("de kimondja, hogy idokorlat nelkul fut", "IDOKORLAT NELKUL" in g2["log"], True)
+        # A hianyzo gat KONFIGURACIO-DRIFT: a sikeres futas sem fedheti el
+        # (RED1 M-2 — "a kapu naplozza, hogy vedene, de nem ved").
+        check("a hianyzo gat akkor is RIASZT, ha a futas sikeres", g2["riasztott"], True)
+        check("es a riasztas SZOVEGE is kimondja, nem csak a naplo",
+              "A GAT NEM VEDETT" in g2["riasztas_szovege"], True)
+
+        # Az URES utvonal is "nincs mivel merni" — NEM eshet vissza nemán a
+        # produkcios defaultra. Ez a `${VAR-default}` es a `${VAR:-default}`
+        # kozti kulonbseg, es pontosan ezen a ponton latszott volna zoldnek egy
+        # olyan CI, ahol egyaltalan nincs `timeout`. (RED1 H-2.)
+        g5 = shell_case(tmp, 0, True, tag="ures", extra_env={"TOJASAR_TIMEOUT_BIN": ""})
+        check("ures idokorlat-utvonal: fail-open, nem csendes visszaeses",
+              "IDOKORLAT NELKUL" in g5["log"], True)
+
+        # ...de csak EGYSZER, amig a helyzet fennall (esemeny, nem allapot).
+        g2b = shell_case(tmp, 0, True, tag="nobin2",
+                         extra_env={"TOJASAR_TIMEOUT_BIN": "/nonexistent/timeout",
+                                    "TOJASAR_TIMEOUT_MISSING_MARKER": str(tmp / "mm.marker")})
+        check("elso alkalommal szol", g2b["riasztott"], True)
+        g2c = shell_case(tmp, 0, True, tag="nobin3",
+                         extra_env={"TOJASAR_TIMEOUT_BIN": "/nonexistent/timeout",
+                                    "TOJASAR_TIMEOUT_MISSING_MARKER": str(tmp / "mm.marker")})
+        check("masodszor MAR NEM ismetli magat", g2c["riasztott"], False)
+
+        # A riasztas a MOSTANI futas sorait mutassa (RED1 M-1): a naplo
+        # append-only es sosem forog, korabban a tail 10 sora lehetett 100%-ban
+        # tobb napos tartalom.
+        # Es a masik irany: ha CSAK regi sor van, a riasztas akkor is kimegy —
+        # ures kontextussal, de nem hallgat el (a riasztas ténye fontosabb).
+        g4 = shell_case(tmp, 1, False, tag="scope",
+                        err_log_seed=["warn: EZ EGY REGI, TEGNAPELOTTI SOR"] * 15)
+        check("csak regi sorok mellett is kimegy a riasztas", g4["riasztott"], True)
+        check("de a regi tartalmat nem adja ki mai gyanant",
+              "TEGNAPELOTTI" in g4["riasztas_szovege"], False)
 
         # A riasztas olvashatosaga: a tail 10 sorat a retry-zaj felemesztheti
         # (RED1 M-1 merte: stale-riasztasnal 9/10 sor lehet retry).
         zaj = ["warn: retry: GET https://x/y — 6. kiserletre HTTP 500"] * 12
-        g3 = shell_case(tmp, 1, False, tag="zaj", err_log_seed=zaj + ["warn: A LENYEGI HIBA"])
+        g3 = shell_case(tmp, 1, False, tag="zaj",
+                        err_log_seed=["warn: EZ EGY REGI, TEGNAPELOTTI SOR"] * 15,
+                        runtime_err_lines=zaj + ["warn: A LENYEGI HIBA"])
         check("a riasztasbol a retry-zaj kimarad", "retry: GET" in g3["riasztas_szovege"], False)
         check("de az erdemi sor BENT marad", "A LENYEGI HIBA" in g3["riasztas_szovege"], True)
         check("es a kihagyott sorok szama meg van nevezve",
               "+12 retry-sor" in g3["riasztas_szovege"], True)
+        check("a KORABBI futasok sorai viszont nem", "TEGNAPELOTTI" in g3["riasztas_szovege"], False)
 
         print("\n[F] renderFreshness regi/hianyos sement sem dol el [RED1 M2 res]")
         ui = render_freshness_cases(tmp)

@@ -6,6 +6,16 @@ ERR_LOG="$PROJECT_ROOT/data/scraper.err.log"
 TELEGRAM_ENV="${TELEGRAM_ENV:-/Users/cloudus/.claude/channels/telegram/.env}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-8578193341}"
 
+# Hol tartott az err.log a futas ELEJEN. A riasztas csak az AZOTA keletkezett
+# sorokat mutatja (RED1 M-1, 2026-09-18): a naplo append-only, sosem forog, es
+# nincs benne idobelyeg — a `tail -n 10` emiatt mutathatott 100%-ban tobb napos
+# tartalmat, es a "+N retry-sor" szam elettartam-kumulativ lett volna.
+ERR_LOG_START_BYTES=0
+[[ -f "$ERR_LOG" ]] && ERR_LOG_START_BYTES="$(wc -c < "$ERR_LOG" | tr -d ' ')"
+
+# 1, ha a futas IDOKORLAT NELKUL ment (hianyzott a binaris).
+TIMEOUT_MISSING=0
+
 # send_alert CSAK kuld — NEM lep ki. (RED1 N-1, 2026-09-14: az elozo valtozat
 # `exit`-tel zart, ezert a riasztas megette a publikalast: egyetlen lemarado
 # sorozat miatt a dashboard veglegesen befagyott volna.)
@@ -21,8 +31,13 @@ send_alert() {
     # kontextus kiszorul. A dontő sor mindig megmarad (a ciklus UTAN irodik), de
     # a kore adott sorok is kellenek. A retry TENYET nem nyeljuk el: a szamat
     # odairjuk — egy 50-es szam onmagaban diagnozis.
-    retry_lines="$(grep -c '^warn: retry: ' "$ERR_LOG" || true)"
-    err_tail="$(grep -v '^warn: retry: ' "$ERR_LOG" | tail -n 10)"
+    local now_bytes from_byte
+    now_bytes="$(wc -c < "$ERR_LOG" | tr -d ' ')"
+    # Ha a naplo kozben KISEBB lett (kezi torles/rotacio), az egeszet olvassuk:
+    # a hianyzo kontextus rosszabb, mint a regi.
+    if (( now_bytes < ERR_LOG_START_BYTES )); then from_byte=1; else from_byte=$((ERR_LOG_START_BYTES + 1)); fi
+    retry_lines="$(tail -c "+$from_byte" "$ERR_LOG" | grep -c '^warn: retry: ' || true)"
+    err_tail="$(tail -c "+$from_byte" "$ERR_LOG" | grep -v '^warn: retry: ' | tail -n 10)"
     if [[ "${retry_lines:-0}" -gt 0 ]]; then
       err_tail="$err_tail"$'\n'"(+${retry_lines} retry-sor kihagyva a naplóból)"
     fi
@@ -31,6 +46,14 @@ send_alert() {
   fi
 
   text=$'⚠️ Tojásár-scraper HIBA '"$when"$'\nexit code: '"$exit_code"$'\n\nerr.log tail:\n'"$err_tail"
+
+  # A hianyzo idokorlat-binaris KONFIGURACIO-DRIFT, nem tranziens hiba: a gat
+  # nemán kikapcsolva marad. A naplo errol nem eleg (RED1 M-2) — a rendszernek
+  # van egy sajat hibaosztalya arra, amikor "a kapu naplozza, hogy vedene, de
+  # nem ved". Ezert a RIASZTAS SZOVEGEBE is bekerul.
+  if (( TIMEOUT_MISSING )); then
+    text="$text"$'\n\n⚠️ A GAT NEM VEDETT: az idokorlat-binaris hianyzik ('"$TIMEOUT_BIN"$') — ez a futas idokorlat NELKUL ment. Konfiguracio-drift, nem mulo hiba.'
+  fi
 
   if [[ -r "$TELEGRAM_ENV" ]]; then
     source "$TELEGRAM_ENV"
@@ -123,16 +146,22 @@ fi
 # idokorlat NELKUL megy tovabb (fail-open): egy hianyzo mereszkoz nem
 # akaszthatja meg a napi adatgyujtest, de KIMONDJA magat a naploban.
 # ---------------------------------------------------------------------------
-TIMEOUT_BIN="${TOJASAR_TIMEOUT_BIN:-/opt/homebrew/bin/timeout}"
+# `-` es NEM `:-` : az URES ertek is ervenyes valasz ("nincs mivel merni"), es
+# nem eshet vissza nemán a produkcios utra. A `:-` az uresre is a defaultot adja,
+# amitol a "nincs binaris" eset a fejleszto gepen zoldnek latszott volna. (RED1 H-2.)
+TIMEOUT_BIN="${TOJASAR_TIMEOUT_BIN-/opt/homebrew/bin/timeout}"
 TIMEOUT_SECONDS="${TOJASAR_TIMEOUT_SECONDS:-900}"
 
 scrape_rc=0
 if [[ -x "$TIMEOUT_BIN" ]]; then
-  "$TIMEOUT_BIN" "$TIMEOUT_SECONDS" /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
+  # -k 30: ha a SIGTERM-re nem all le, 30 mp mulva KILL. Ma nincs signal-kezelo,
+  # tehat a SIGTERM eleg — de egy jovobeli `finally` mellett a gat orokre varna.
+  "$TIMEOUT_BIN" -k 30 "$TIMEOUT_SECONDS" /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
   if (( scrape_rc == 124 )); then
     echo "scraper: IDOTULLEPES (${TIMEOUT_SECONDS}s) - a futas felbeszakadt, riasztas kovetkezik" >&2
   fi
 else
+  TIMEOUT_MISSING=1
   echo "warn: idokorlat-binaris nem talalhato ($TIMEOUT_BIN) - a scraper IDOKORLAT NELKUL fut" >&2
   /usr/bin/python3 scraper/scrape.py || scrape_rc=$?
 fi
@@ -153,6 +182,19 @@ if (( scrape_rc == 2 )); then
   echo "scraper: degradalt futas (exit 2) - az adat mentve es publikalva, riasztas nelkul" >&2
 elif (( scrape_rc != 0 )); then
   send_alert "$scrape_rc"
+fi
+
+# A hianyzo gat AKKOR IS szoljon, ha a futas egyebkent sikeres volt — kulonben a
+# vedelem-vesztes pont a jo napokon marad nema. De csak EGYSZER, amig a helyzet
+# fennall: esemeny, nem allapot. (A marker torlodik, amint a binaris visszater.)
+MISSING_MARKER="${TOJASAR_TIMEOUT_MISSING_MARKER:-$PROJECT_ROOT/data/.timeout-bin-missing}"
+if (( TIMEOUT_MISSING )); then
+  if [[ ! -f "$MISSING_MARKER" ]] && (( scrape_rc == 0 || scrape_rc == 2 )); then
+    send_alert "$scrape_rc"
+    : > "$MISSING_MARKER"
+  fi
+else
+  rm -f "$MISSING_MARKER"
 fi
 
 exit "$scrape_rc"
