@@ -579,12 +579,55 @@ def scrape_source(session: requests.Session, source: Source) -> list[dict[str, A
     return observations
 
 
-RETRY_TOTAL = 3
-RETRY_BACKOFF_FACTOR = 1.0
+RETRY_TOTAL = 5            # 1 keres + 5 ujraprobalas = 6 kiserlet
+RETRY_BACKOFF_FACTOR = 2.0  # rahagyas: 0 -> 4 -> 8 -> 16 -> 30 (cap) masodperc
+RETRY_BACKOFF_MAX = 30.0
+RETRY_BACKOFF_JITTER = 1.0  # +0..1s veletlen, hogy a 13 forras ne egyszerre terjen vissza
 RETRY_STATUS = (500, 502, 503, 504)
 
 
-def build_session() -> requests.Session:
+def _retry_attempts(response: requests.Response) -> int:
+    """Hany kiserletbe kerult ez a valasz. 1 = elsore atment."""
+    history = getattr(getattr(getattr(response, "raw", None), "retries", None), "history", None)
+    return len(history) + 1 if history else 1
+
+
+def _short_url(url: str | None) -> str:
+    return (url or "").split("?")[0]
+
+
+class RetryLoggingAdapter(HTTPAdapter):
+    """Ugyanaz, mint a HTTPAdapter, de KIMONDJA, ha ujra kellett probalni.
+
+    Miert kell: az urllib3 retry-retege NEMA. 2026-09-18-an emiatt olvastam ugy
+    a naplot, hogy az ECB-hivas "egyszer probalt es elbukott" — holott negyszer
+    ment el, 7 masodperc alatt. A "hanyszor probaltuk" kerdesre a NAPLONAK kell
+    valaszolnia, nem a forraskodnak: egy meroeszkoz, ami hallgatni is tud,
+    veszelyesebb, mint ha nem lenne.
+    """
+
+    def send(self, request, **kwargs):  # type: ignore[override]
+        try:
+            response = super().send(request, **kwargs)
+        except Exception as exc:
+            warn(f"retry: {request.method} {_short_url(request.url)} — minden kiserlet elbukott: {exc}")
+            raise
+        attempts = _retry_attempts(response)
+        if attempts > 1:
+            warn(
+                f"retry: {request.method} {_short_url(request.url)} — "
+                f"{attempts}. kiserletre HTTP {response.status_code}"
+            )
+        return response
+
+
+def build_session(
+    *,
+    total: int = RETRY_TOTAL,
+    backoff_factor: float = RETRY_BACKOFF_FACTOR,
+    backoff_max: float = RETRY_BACKOFF_MAX,
+    backoff_jitter: float = RETRY_BACKOFF_JITTER,
+) -> requests.Session:
     """A scraper HTTP-sessionje, retry-rel.
 
     Kulon fuggveny, mert kulonben TESZTELHETETLEN (RED1 mutacios meres: a
@@ -592,21 +635,31 @@ def build_session() -> requests.Session:
     http.server-rel merhető, hogy tenyleg ujraprobal-e.
 
     Miert kell: a naploban rogzitett OSSZES eddigi bukas tranziens kulso hiba
-    volt (500 / 504 / read timeout), es forrasonkent EGYETLEN probalkozas ment.
-    A riasztas-zaj gyokere itt van, nem a kilepesi kod szemantikajaban.
+    volt (500 / 504 / read timeout). A riasztas-zaj gyokere itt van, nem a
+    kilepesi kod szemantikajaban.
+
+    2026-09-18 (Tomi kerese): az ablak MERVE 4 kiserlet / 6,7 masodperc volt —
+    ennyi ido alatt egy ECB-kieses at sem er. Ezert 6 kiserlet ~1 perc alatt.
+    A parameterek nem azert allithatok, hogy a hivo allitgassa oket (senki nem
+    teszi), hanem hogy a teszt a MECHANIZMUST (ujraprobal-e, no-e a rahagyas)
+    masodpercek alatt merhesse, az eles ertekek pedig KULON, konstansra
+    allitott meressel legyenek ellenorizve. Egy 1 perces teszt ugyanis nem fut
+    le eleg gyakran ahhoz, hogy gat legyen.
     """
     session = requests.Session()
     session.headers.update(
         {"User-Agent": USER_AGENT, "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"}
     )
     retry = Retry(
-        total=RETRY_TOTAL,
-        backoff_factor=RETRY_BACKOFF_FACTOR,
+        total=total,
+        backoff_factor=backoff_factor,
+        backoff_max=backoff_max,
+        backoff_jitter=backoff_jitter,
         status_forcelist=RETRY_STATUS,
         allowed_methods=frozenset({"GET", "POST"}),
         raise_on_status=False,
     )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = RetryLoggingAdapter(max_retries=retry)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session

@@ -16,6 +16,8 @@ Futtatas:  /usr/bin/python3 scraper/test_partial_failure.py
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import subprocess
 import sqlite3
@@ -71,6 +73,27 @@ def count_rows(db: Path) -> int:
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
         return conn.execute("SELECT COUNT(*) FROM observation").fetchone()[0]
+    finally:
+        conn.close()
+
+
+def rows_on(db: Path, day: date) -> int:
+    """Hany megfigyeles all a DB-ben ERRE a napra.
+
+    Ezt merjuk a sorok szamanak NOVEKEDESE helyett (2026-09-18). Az upsert
+    kulcsa `UNIQUE(series_id, week_iso)` — vagyis a HET. Ha a magvetett pont
+    es a mai adat egy ISO-hetbe esik, a mentes FELULIR, nem beszur: a delta
+    akkor is 0, ha minden rendben ment. Ket iranyban hazudott:
+      · hamis PIROS — "nem mentodott semmi" (csutortok-vasarnap, 4 nap a 7-bol)
+      · hamis ZOLD  — a "semmi nem ment be" allitas akkor is teljesult volna,
+                      ha a rossz adat CSENDBEN felulirja a regit
+    A "bent van-e a mai sor" kerdes naptartol fuggetlen, es erosebb allitas.
+    """
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM observation WHERE observed_date = ?", (day.isoformat(),)
+        ).fetchone()[0]
     finally:
         conn.close()
 
@@ -171,34 +194,75 @@ def shell_case(tmp: Path, exit_code: int, change_data: bool, with_remote: bool =
 
 # --- retry-harness -----------------------------------------------------------
 class _Counting(BaseHTTPRequestHandler):
+    """Mindig 500-at ad — kiveve, ha `fail_first` utan gyogyulnia kell."""
+
     hits = 0
+    stamps: list[float] = []
+    fail_first: int | None = None
 
     def do_GET(self):  # noqa: N802
-        type(self).hits += 1
-        self.send_response(500)
+        cls = type(self)
+        cls.hits += 1
+        cls.stamps.append(time.monotonic())
+        healed = cls.fail_first is not None and cls.hits > cls.fail_first
+        self.send_response(200 if healed else 500)
         self.end_headers()
-        self.wfile.write(b"nope")
+        self.wfile.write(b"ok" if healed else b"nope")
 
     def log_message(self, *a):  # csend
         pass
 
 
-def retry_hits() -> int:
+def retry_probe(*, fail_first: int | None = None, **session_kwargs) -> dict:
+    """Egy lokalis szerverre kuld EGY kerest, es megmeri, mi tortent valojaban.
+
+    Vissza: hany kiserlet erkezett be, mekkorak voltak a szunetek kozottuk,
+    mi lett a vegso statusz, es mit irt a scraper a stderr-re. A szunetek azert
+    kellenek, mert a "novekvo rahagyas" maskepp nem allitas, csak remeny.
+    """
     _Counting.hits = 0
+    _Counting.stamps = []
+    _Counting.fail_first = fail_first
     srv = HTTPServer(("127.0.0.1", 0), _Counting)
     thread = threading.Thread(target=srv.serve_forever, daemon=True)
     thread.start()
+    err = io.StringIO()
+    status: int | None = None
     try:
-        session = scrape.build_session()
-        try:
-            session.get(f"http://127.0.0.1:{srv.server_port}/x", timeout=5)
-        except Exception:
-            pass
-        return _Counting.hits
+        session = scrape.build_session(**session_kwargs)
+        with contextlib.redirect_stderr(err):
+            try:
+                status = session.get(f"http://127.0.0.1:{srv.server_port}/x", timeout=5).status_code
+            except Exception:
+                status = None
+        stamps = list(_Counting.stamps)
+        return {
+            "hits": _Counting.hits,
+            "gaps": [round(b - a, 2) for a, b in zip(stamps, stamps[1:])],
+            "status": status,
+            "stderr": err.getvalue(),
+        }
     finally:
         srv.shutdown()
         srv.server_close()
         thread.join(timeout=5)
+
+
+def live_retry_config() -> dict:
+    """Amit az ELES session tenylegesen visel — nem amit a konstans mond.
+
+    Kulon meres, mert a ket dolog elcsuszhat egymastol: a konstans maradhat
+    helyes akkor is, ha a build_session mar nem hasznalja.
+    """
+    retry = scrape.build_session().get_adapter("https://x/").max_retries
+    return {
+        "total": retry.total,
+        "backoff_factor": retry.backoff_factor,
+        "backoff_max": retry.backoff_max,
+        "backoff_jitter": retry.backoff_jitter,
+        "status_forcelist": tuple(sorted(retry.status_forcelist or ())),
+        "post_is_retried": "POST" in (retry.allowed_methods or ()),
+    }
 
 
 # --- UI-harness --------------------------------------------------------------
@@ -249,45 +313,50 @@ def render_freshness_cases(tmp: Path) -> dict:
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="tojasar-teszt-") as tmpdir:
         tmp = Path(tmpdir)
-        recent = [10, 3]          # ket friss adatpont -> ~7 napos ritmus
+        # Heti racson (7 tobbszorosei): igy a magvetett pontok garantaltan MAS
+        # ISO-hetbe esnek, mint a mai adat, es a szamolt ritmus is pontosan 7
+        # napos — a het napjatol fuggetlenul. A regi [10, 3] ertekpar a sajat
+        # naptari helyzetetol fuggott: csutortoktol vasarnapig a 3 napos pont
+        # a mai hetbe esett, felulirodott, es a ritmus 10 naposra ugrott.
+        recent = [14, 7]
 
         print("\n[A1] EGY forras bukik, a tobbi jo -> a jo adat NEM veszhet el")
         db, out = tmp / "a1.db", tmp / "a1.json"
         seed(db, recent)
-        code, before, after = run_main(db, out, one_fails)
+        code, _, _ = run_main(db, out, one_fails)
         check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
-        check("pontosan a 12 jo forras sora kerult be", after - before,
+        check("pontosan a 12 jo forras mai sora all a DB-ben", rows_on(db, TODAY),
               len(SOURCE_KEYS) - 1)
         check("data.json ujragenaralodott", out.exists(), True)
 
         print("\n[A2] MINDEN forras bukik -> riaszt, data.json NEM kap hamis datumot")
         db, out = tmp / "a2.db", tmp / "a2.json"
         seed(db, recent)
-        code, before, after = run_main(db, out, all_fail)
+        code, _, _ = run_main(db, out, all_fail)
         check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
-        check("semmi nem mentodott", after, before)
+        check("semmi nem mentodott", rows_on(db, TODAY), 0)
         check("data.json NEM irodott ki", out.exists(), False)
 
         print("\n[A3] MINDEN forras jo -> tiszta siker")
         db, out = tmp / "a3.db", tmp / "a3.json"
         seed(db, recent)
-        code, before, after = run_main(db, out, all_ok)
+        code, _, _ = run_main(db, out, all_ok)
         check("kilepesi kod = EXIT_OK", code, scrape.EXIT_OK)
-        check("mentodott", after > before, True)
+        check("mind a 13 forras mai sora bement", rows_on(db, TODAY), len(SOURCE_KEYS))
 
         print("\n[A4] EGY rossz sor nem dobhatja el a tobbi forras koteget")
         db, out = tmp / "a4.db", tmp / "a4.json"
         seed(db, recent)
-        code, before, after = run_main(db, out, one_bad_row)
-        check("a 12 jo forras adata bekerult", after - before, len(SOURCE_KEYS) - 1)
+        code, _, _ = run_main(db, out, one_bad_row)
+        check("a 12 jo forras mai adata bekerult", rows_on(db, TODAY), len(SOURCE_KEYS) - 1)
         check("degradaltnak jelzi (nem nema siker)", code, scrape.EXIT_DEGRADED)
 
         print("\n[A5] MINDEN sor elutasitva -> RIASZT (nem nema siker) [RED1 N-2]")
         db, out = tmp / "a5.db", tmp / "a5.json"
         seed(db, recent)
-        code, before, after = run_main(db, out, every_row_bad)
+        code, _, _ = run_main(db, out, every_row_bad)
         check("kilepesi kod = EXIT_ALERT", code, scrape.EXIT_ALERT)
-        check("tenyleg semmi nem ment be", after, before)
+        check("tenyleg semmi nem ment be", rows_on(db, TODAY), 0)
 
         print("\n[A6] A kihagyottak TOBBSEGBEN -> RIASZT, nem csak degradalt [RED1 N-5]")
         db, out = tmp / "a6.db", tmp / "a6.json"
@@ -407,9 +476,36 @@ def main() -> int:
         # `scrape.RETRY_TOTAL + 1`-et irt — ezzel a konstans mutalasa egyutt
         # mozgatta a mercet is, es a "retry kikapcsolva" mutacio ATMENT a
         # teszten. A teszt csak akkor allitas, ha a vart ertek fuggetlen.
-        hits = retry_hits()
-        check("a scraper ujraprobal (1 keres + 3 retry = 4 talalat)", hits, 4)
-        check("es tenyleg tobbszor probal, nem egyszer", hits > 1, True)
+        cfg = live_retry_config()
+        check("az ELES session 5 ujraprobalast visel (= 6 kiserlet)", cfg["total"], 5)
+        check("novekvo rahagyas: a szorzo 2.0", cfg["backoff_factor"], 2.0)
+        check("a rahagyas 30 masodpercnel megall", cfg["backoff_max"], 30.0)
+        check("van veletlen szoras (nem egyszerre ter vissza mind)", cfg["backoff_jitter"] > 0, True)
+        check("az 500 ujraprobalando", 500 in cfg["status_forcelist"], True)
+        check("a POST is (a chart-lekeres az)", cfg["post_is_retried"], True)
+
+        # A viselkedest KIS rahagyassal merjuk (masodpercek, nem perc), az eles
+        # ertekeket a fenti konfig-meres orzi. Igy mindketto gat marad.
+        probe = retry_probe(backoff_factor=0.1, backoff_max=1.0, backoff_jitter=0.0)
+        check("tartos 500-ra 6 kiserlet megy el", probe["hits"], 6)
+        check("es tenyleg tobbszor probal, nem egyszer", probe["hits"] > 1, True)
+        gaps = probe["gaps"]
+        check("a rahagyas NO, nem allando",
+              len(gaps) >= 3 and gaps[1] > gaps[0] and gaps[2] > gaps[1], True, )
+        # A szoveget NEM kotjuk a kiserletszamhoz: azt a fenti allitas orzi. Itt
+        # egyetlen kerdes van — megszolal-e egyaltalan a retry-reteg.
+        check("a kimerult retry KIMONDJA magat a naploban",
+              "kiserletre HTTP 500" in probe["stderr"]
+              or "minden kiserlet elbukott" in probe["stderr"], True)
+
+        healed = retry_probe(fail_first=2, backoff_factor=0.1, backoff_max=1.0, backoff_jitter=0.0)
+        check("atmeneti 500 utan a 3. kiserlet atmegy", healed["status"], 200)
+        check("es pontosan 3 kiserletbe kerult", healed["hits"], 3)
+        check("a naplo megnevezi, hanyadikra sikerult", "3. kiserletre HTTP 200" in healed["stderr"], True)
+
+        quiet = retry_probe(fail_first=0, backoff_factor=0.1, backoff_max=1.0, backoff_jitter=0.0)
+        check("elsore sikeres keres: 1 kiserlet", quiet["hits"], 1)
+        check("es NEM zajong a naploban", "retry:" in quiet["stderr"], False)
 
         print("\n[F] renderFreshness regi/hianyos sement sem dol el [RED1 M2 res]")
         ui = render_freshness_cases(tmp)
