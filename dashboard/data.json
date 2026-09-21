@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-20T09:00:17+03:00",
+  "generated_at": "2026-09-21T09:00:19+03:00",
   "schema_version": "0.5",
   "freshness": {
-    "as_of": "2026-09-20",
+    "as_of": "2026-09-21",
     "fallback_stale_after_days": 21,
     "series_total": 50,
     "series_stale": []
@@ -431,7 +431,7 @@
             }
           ],
           "updated_through": "2026-09-16",
-          "days_since_update": 4,
+          "days_since_update": 5,
           "stale_after_days": 14
         },
         {
@@ -852,7 +852,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         }
       ]
@@ -1286,7 +1286,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -1707,7 +1707,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -2134,7 +2134,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -2561,7 +2561,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         }
       ]
@@ -2989,7 +2989,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -3410,7 +3410,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -3831,7 +3831,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -4252,7 +4252,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -4673,7 +4673,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -5094,7 +5094,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -5515,7 +5515,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -5936,7 +5936,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -6357,7 +6357,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -6778,7 +6778,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -7199,7 +7199,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -7620,7 +7620,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8041,7 +8041,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8462,7 +8462,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8883,7 +8883,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -9304,7 +9304,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -9725,7 +9725,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -10146,7 +10146,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -10567,7 +10567,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -10988,7 +10988,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -11409,7 +11409,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -11830,7 +11830,7 @@
             }
           ],
           "updated_through": "2026-09-15",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -12245,7 +12245,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -12660,7 +12660,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -13075,7 +13075,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -13490,7 +13490,7 @@
             }
           ],
           "updated_through": "2026-09-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -13917,7 +13917,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -14344,7 +14344,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -14771,7 +14771,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -15198,7 +15198,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -15625,7 +15625,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -16052,7 +16052,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -16479,7 +16479,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -16906,7 +16906,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -17333,7 +17333,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -17760,7 +17760,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -18187,7 +18187,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -18614,7 +18614,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -19041,7 +19041,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -19468,7 +19468,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -19895,7 +19895,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -20322,7 +20322,7 @@
             }
           ],
           "updated_through": "2026-09-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         }
       ]
@@ -20531,10 +20531,22 @@
               "fx_rate_unit": "PLN/EUR",
               "fx_rate_date": "2026-09-14",
               "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
+            },
+            {
+              "week": "2026-W39",
+              "date": "2026-09-21",
+              "price": 0.696688,
+              "change": null,
+              "native_price": 3.04,
+              "native_unit": "PLN/db",
+              "fx_rate": 4.3635,
+              "fx_rate_unit": "PLN/EUR",
+              "fx_rate_date": "2026-09-18",
+              "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
             }
           ],
-          "updated_through": "2026-09-14",
-          "days_since_update": 6,
+          "updated_through": "2026-09-21",
+          "days_since_update": 0,
           "stale_after_days": 14
         }
       ]
@@ -20652,7 +20664,7 @@
               "week": "2025-W39",
               "date": "2025-09-22",
               "price": 300.61,
-              "change": -1.86
+              "change": null
             },
             {
               "week": "2025-W40",
@@ -20956,7 +20968,7 @@
             }
           ],
           "updated_through": "2026-09-07",
-          "days_since_update": 13,
+          "days_since_update": 14,
           "stale_after_days": 14
         }
       ]
