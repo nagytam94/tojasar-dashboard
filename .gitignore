@@ -16,3 +16,4 @@ data/.alert-sent
 # reszletekkel es belso utvonalakkal) — a repo publikus. RED1 M-3.
 data/.alert-attempted
 data/.timeout-bin-missing
+data/*.sha256

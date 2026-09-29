@@ -200,9 +200,20 @@ function renderFreshness(d){
 
   const stale=(d.freshness&&d.freshness.series_stale)||[];
   if(!stale.length){ box.style.display="none"; return; }
-  const nev=stale.slice(0,6).map(x=>`${x.label||x.key} (${x.days_since_update} napja)`).join(" · ");
+  // A ket gat KULON nevvel: "delivery" = a forras elhallgatott, "age" = pontosan
+  // szallit, de egyre regebbi adatot. A ketto mas valaszt kér, ezert a savon is latszik.
+  const nev=stale.slice(0,6).map(x=>{
+    const ok = x.reason==="age"
+      ? `${x.days_since_update} napos adat`
+      : `${x.days_since_delivery ?? x.days_since_update} napja nem erkezett`;
+    return `${x.label||x.key} (${ok})`;
+  }).join(" · ");
   const tobb=stale.length>6?` … +${stale.length-6} további`:"";
-  box.textContent=`⚠️ ${stale.length} sorozat elavult (${d.freshness.stale_after_days} napnál régebbi): ${nev}${tobb}`;
+  // A kuszob sorozatonkenti; a savon a TARTALEK-erteket mutatjuk. A mezo neve az
+  // exportban `fallback_stale_after_days` — a korabbi `stale_after_days` olvasas
+  // "undefined napnal regebbi" szoveget irt ki (a sav az egyetlen felulet, amit nezunk).
+  const kuszob = (d.freshness && d.freshness.fallback_stale_after_days);
+  box.textContent=`⚠️ ${stale.length} sorozat elavult${kuszob?` (tartalék küszöb: ${kuszob} nap)`:""}: ${nev}${tobb}`;
   box.style.display="block";
 }
 

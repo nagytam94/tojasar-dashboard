@@ -684,6 +684,15 @@ def _delivered_marker_path(db_path: Path) -> Path:
     return Path(override) if override else db_path.parent / ".alert-sent"
 
 
+def _alert_kind_ir(db_path: Path, kind: str) -> None:
+    """Mirol szol a most kimeno riasztas. A run_daily.sh ezt masolja a
+    kezbesitesi markerbe, hogy a nyugta ALERT-SPECIFIKUS legyen."""
+    try:
+        (db_path.parent / ".alert-kind").write_text(kind + "\n", encoding="utf-8")
+    except OSError as exc:
+        warn(f"alert kind not written ({exc})")
+
+
 def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
     """Melyik sorozat valt MOST elavultta — esemeny, nem allapot.
 
@@ -710,27 +719,62 @@ def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
         raw = json.loads(path.read_text(encoding="utf-8"))
         reported = set(raw.get("reported_stale", []))
         pending = set(raw.get("pending_stale", []))
+        # SEMA-MIGRACIO (2026-09-29): a `stale` mostantol ket okbol allhat elo
+        # ("delivery" / "age"), es az allapot (kulcs, reason) parra all. A REGI
+        # fajl csupasz kulcsokat tartalmaz. Migracio nelkul a halmaz-metszet nem
+        # talalna egyezest -> MINDEN stale sorozat "ujnak" latszana -> riasztas-aradat
+        # a deploy napjan, es a ketfazisu nyugta nemán elveszne.
+        # A regi, csupasz kulcsot MINDEN reason-nal egyezonek tekintjuk (befogado
+        # irany): inkabb ne riasszunk ujra olyanra, amirol mar szoltunk.
+        reported |= {f"{k}:delivery" for k in reported if ":" not in k}
+        reported |= {f"{k}:age" for k in reported if ":" not in k}
+        pending |= {f"{k}:delivery" for k in pending if ":" not in k}
+        pending |= {f"{k}:age" for k in pending if ":" not in k}
     except FileNotFoundError:
         pass
     except Exception as exc:  # serult allapotfajl ne allitsa meg a futast
         warn(f"alert state unreadable ({exc}); treating every stale series as new")
 
+    # ALERT-SPECIFIKUS NYUGTA (2026-09-29). A marker BARMELY sikeres Telegram-
+    # kuldesre letrejon (run_daily.sh), a scraper viszont MINDEN pending stale
+    # elemet ezzel nyugtazott. Igy egy elbukott stale-riasztast egy masnapi,
+    # MASIK riasztas HTTP 200-a elnyelhetett — a jelzes veglegesen elveszett.
+    # Mostantol a marker TARTALMA mondja meg, milyen riasztas ment ki; csak a
+    # 'stale' nyugtaz stale-t.
+    marker_tipus = ""
+    try:
+        marker_tipus = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+    # Visszafele kompatibilitas: a REGI marker ures. Azt elfogadjuk nyugtanak,
+    # kulonben a valtas napjan minden fuggo jelzes ujra kimenne.
+    nyugta_ervenyes = marker_tipus in ("", "stale")
+
     # 1. fazis nyugtazasa: az elozo futas riasztasa IGAZOLTAN kiment
     if marker.exists():
-        reported |= pending
-        pending = set()
+        if nyugta_ervenyes:
+            reported |= pending
+            pending = set()
+        else:
+            warn(f"a kezbesitesi marker mas riasztast nyugtaz ({marker_tipus!r}); "
+                 f"a {len(pending)} fuggo stale-jelzes FUGGOBEN marad")
         try:
             marker.unlink()
         except OSError:
             pass
 
-    current = {item["key"] for item in stale}
+    # (kulcs, reason) par — egy sorozat ujra riaszthat, ha MAS okbol valik stale-le.
+    current = {f'{item["key"]}:{item.get("reason") or "delivery"}' for item in stale}
     # a visszaallt sorozat kikerul -> ha kesobb ujra elavul, ujra szol
     reported &= current
     pending &= current
 
-    fresh = sorted(current - reported)
-    pending = set(fresh)
+    # Az ALLAPOT (kulcs, reason) paron all — de a VISSZAADOTT ertek tovabbra is
+    # puszta sorozat-kulcs: a hivo (riasztas-szoveg, tesztek) azzal indexel a
+    # `stale` listaba. Egy allapot-finomitas nem torheti el a hivo interfeszet.
+    fresh_parok = sorted(current - reported)
+    pending = set(fresh_parok)
+    fresh = sorted({p.rsplit(":", 1)[0] for p in fresh_parok})
 
     try:
         path.write_text(
@@ -844,11 +888,19 @@ def main(argv: list[str] | None = None) -> int:
     newly = newly_stale_series(args.db, stale)
     if newly:
         by_key = {item["key"]: item for item in stale}
-        details = ", ".join(
-            f"{key} ({by_key[key]['days_since_update']}d > {by_key[key]['stale_after_days']}d)"
-            for key in newly[:5]
-        )
+        # A KET GAT KULON NEVEN: "delivery" = a forras elhallgatott (nezd a
+        # forrast/parsert); "age" = pontosan szallit, de egyre regebbi adatot
+        # (a publikalasi rend valtozott). A ket eset mas valaszt kér.
+        def _reszlet(key: str) -> str:
+            it = by_key[key]
+            ok = it.get("reason") or "delivery"
+            if ok == "delivery":
+                return (f"{key} [szallitas: {it.get('days_since_delivery')}d > "
+                        f"{it.get('delivery_stale_after_days')}d]")
+            return f"{key} [adatkor: {it['days_since_update']}d > {it['stale_after_days']}d]"
+        details = ", ".join(_reszlet(k) for k in newly[:5])
         warn(f"{len(newly)} series newly stale: {details}")
+        _alert_kind_ir(args.db, "stale")
         return EXIT_ALERT
 
     # 4) Degradalt allapotok: latszanak a naploban es a dashboard savjan,

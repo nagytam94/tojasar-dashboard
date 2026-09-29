@@ -1,19 +1,14 @@
 {
-  "generated_at": "2026-09-29T09:00:18+03:00",
+  "generated_at": "2026-09-29T18:45:40+03:00",
   "schema_version": "0.5",
   "freshness": {
     "as_of": "2026-09-29",
     "fallback_stale_after_days": 21,
     "series_total": 50,
-    "series_stale": [
-      {
-        "key": "eu_whole_broiler_65",
-        "label": "EU Whole broiler (65%)",
-        "updated_through": "2026-09-14",
-        "days_since_update": 15,
-        "stale_after_days": 14
-      }
-    ]
+    "series_stale": [],
+    "age_ceiling_days": 20,
+    "series_near_age_ceiling": [],
+    "series_without_delivery_history": []
   },
   "categories": [
     {

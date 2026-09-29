@@ -39,6 +39,22 @@ MAX_STALE_AFTER_DAYS = 30
 # hogy a valodi ritmust lassa, es eleg rovid, hogy egy regi kieses kioregedjen.
 GAP_WINDOW = 26
 
+# ── GAT 2: ADATKOR-PLAFON (2026-09-29) ─────────────────────────────────────
+# Fix, NEM tanult konstans. Arra valaszol, amire a szallitasi gat vak: a forras
+# pontosan szallit, de egyre regebbi adatot.
+#
+# Miert 20: a mert legnagyobb NORMAL adatkor 17 (eu_whole_broiler_65, es nem
+# egyszeri — 115 napbol 13-on 17, 29-en >=16, tehat hetente visszater). Egy 18-as
+# plafon 1 nap margoval ulne a tortenelmi csucson: pontosan az az alakzat, amit
+# fent a STALE_AFTER_DAYS kommentje elitel. 20-nal az EU margoja 3, a masik 49
+# sorozate >=8. A backtest 18/19/20/21-nel egyarant 0 esemenyt ad — a 20 tehat
+# ingyen vesz margot. Ellenorzese: scraper/backtest_frissesseg.py
+#
+# ELAVULAS-JELZES: ha egy sorozat a plafon 2 napos korzetebe er, az DEGRADED
+# (uzemeltetesi hir), nem ALERT — l. a `figyelmeztetes` mezot a series_freshness-ben.
+ADATKOR_PLAFON_DAYS = 20
+ADATKOR_FIGYELMEZTETES_NAP = 2
+
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS series (
@@ -99,6 +115,15 @@ def init_db(conn: sqlite3.Connection) -> None:
         "fx_rate_unit": "TEXT",
         "fx_rate_date": "TEXT",
         "fx_source": "TEXT",
+        # 2026-09-29 — a SZALLITASI ORA. Ket kulon mennyiseg kell:
+        #   first_seen_at  : mikor lattuk ELOSZOR ezt a hetet (YYYY-MM-DD, Europe/Bucharest)
+        #   first_seen_src : 'git' (visszamenoleges rekonstrukcio) | 'scrape' (elo futas)
+        # A `fetched_at` erre NEM hasznalhato: az upsert MINDEN futasnal felulirja
+        # (merve: az eu_whole_broiler_65 mind a 68 sora azonos fetched_at-et visel).
+        # A provenance nem dekoracio: a rekonstrukcio ERTEK-alapon javit, es ebbol
+        # tudjuk, hogy egy datum honnan szarmazik.
+        "first_seen_at": "TEXT",
+        "first_seen_src": "TEXT",
     }
     for name, sql_type in optional_columns.items():
         if name not in observation_columns:
@@ -174,16 +199,31 @@ def upsert_observation(
     fx_source: str | None,
     fetched_at: str,
     raw: Any,
+    first_seen_at: str | None = None,
 ) -> None:
+    """A `first_seen_at` a SZALLITAS oraja — es SOHA nem irodik felul.
+
+    Harom eset, mind AC (AC-23):
+      1. uj (series_id, week_iso) sor  -> first_seen_at = a futas Europe/Bucharest
+         datuma, first_seen_src = 'scrape'
+      2. ugyanazon het ujra-upsertje   -> mindket mezo VALTOZATLAN (COALESCE)
+      3. kovetkezo uj het              -> sajat, uj first-seen datumot kap
+
+    Miert kritikus a 2. pont: enelkul minden napi futas nullazna az orat, es a
+    szallitasi gat sosem latna reseket. A `fetched_at` pont ezt csinalja (mindig
+    felulirodik) — ezert nem hasznalhato szallitasi bizonyitekkent.
+    """
+    if first_seen_at is None:
+        first_seen_at = datetime.now(ZoneInfo("Europe/Bucharest")).date().isoformat()
     raw_json = json.dumps(raw, ensure_ascii=False, sort_keys=True, default=_json_default)
     conn.execute(
         """
         INSERT INTO observation (
           series_id, week_iso, observed_date, price, change,
           native_price, native_unit, fx_rate, fx_rate_unit, fx_rate_date, fx_source,
-          fetched_at, raw
+          fetched_at, raw, first_seen_at, first_seen_src
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scrape')
         ON CONFLICT(series_id, week_iso) DO UPDATE SET
           observed_date = excluded.observed_date,
           price = excluded.price,
@@ -195,12 +235,17 @@ def upsert_observation(
           fx_rate_date = excluded.fx_rate_date,
           fx_source = excluded.fx_source,
           fetched_at = excluded.fetched_at,
-          raw = excluded.raw
+          raw = excluded.raw,
+          -- A SZALLITASI ORA NEM MOZDUL: a COALESCE az elso beirast orzi meg.
+          -- (A `fetched_at` folotte a szandekosan frissulo mezo — a ketto kulonbsege
+          --  pont az, ami a publikalasi kesest lathatova teszi.)
+          first_seen_at = COALESCE(observation.first_seen_at, excluded.first_seen_at),
+          first_seen_src = COALESCE(observation.first_seen_src, excluded.first_seen_src)
         """,
         (
             series_id, week_iso, observed_date, price, change,
             native_price, native_unit, fx_rate, fx_rate_unit, fx_rate_date, fx_source,
-            fetched_at, raw_json,
+            fetched_at, raw_json, first_seen_at,
         ),
     )
 
@@ -274,6 +319,23 @@ def _gap_days(days: list[date]) -> list[int]:
     return [(days[i + 1] - days[i]).days for i in range(len(days) - 1)]
 
 
+def _kuszob_resekbol(gaps: list[int]) -> int:
+    """A kuszob-formula EGY helyen — a kozlesi es a szallitasi ora is ezt hasznalja.
+
+    Szandekosan ugyanaz a keplet, mint amit a series_freshness 2026-09-14 ota hasznal
+    (RED1 N-4 csuszoablak + felso korlat): csak a BEMENET mas (szallitasi resek vs
+    kozlesi resek). Igy a szallitasi gat nem uj heurisztika, hanem ugyanaz a mar
+    atnezett szamitas egy tisztabb oran.
+    """
+    if len(gaps) < 2:
+        return STALE_AFTER_DAYS
+    window = gaps[-GAP_WINDOW:]
+    ws = sorted(window)
+    median = ws[len(ws) // 2]
+    return min(max(max(window) + median, 2 * median, MIN_STALE_AFTER_DAYS),
+               MAX_STALE_AFTER_DAYS)
+
+
 def series_freshness(
     db_path: Path = DB_PATH,
     as_of: date | None = None,
@@ -295,7 +357,7 @@ def series_freshness(
         rows = conn.execute(
             """
             SELECT s.id AS series_id, s.key, s.label, s.size, s.color,
-                   o.observed_date
+                   o.observed_date, o.first_seen_at, o.first_seen_src
             FROM series s
             JOIN observation o ON o.series_id = s.id
             WHERE o.observed_date IS NOT NULL
@@ -308,12 +370,35 @@ def series_freshness(
         entry = per.setdefault(
             row["series_id"],
             {"key": row["key"], "label": row["label"],
-             "size": row["size"], "color": row["color"], "days": []},
+             "size": row["size"], "color": row["color"], "days": [],
+             "szallitas": set(), "fedetlen": 0, "utolso_keses": None},
         )
         try:
             entry["days"].append(date.fromisoformat(row["observed_date"]))
         except ValueError:
             continue
+        # A LEFEDETTSEG nem a mezo letezese, hanem az ERVENYESSEGE: szabalyos datum,
+        # ismert provenance, es a ket mezo egyutt van jelen. Egy fel-NULL par vagy egy
+        # ismeretlen forras-cimke NEM szamit lefedettnek — kulonben egy hibas sor
+        # csendben elesitene a gatat.
+        fs, src = row["first_seen_at"], row["first_seen_src"]
+        if not fs or src not in ("git", "scrape"):
+            entry["fedetlen"] += 1
+            continue
+        try:
+            fs_d = date.fromisoformat(str(fs))
+        except (ValueError, TypeError):
+            entry["fedetlen"] += 1
+            continue
+        entry["szallitas"].add(fs_d)
+        try:
+            obs_d = date.fromisoformat(row["observed_date"])
+        except ValueError:
+            obs_d = None
+        if obs_d is not None:
+            elozo = entry["utolso_keses"]
+            if elozo is None or fs_d >= elozo[0]:
+                entry["utolso_keses"] = (fs_d, (fs_d - obs_d).days)
 
     out: list[dict[str, Any]] = []
     for entry in per.values():
@@ -340,14 +425,67 @@ def series_freshness(
             parts.append(str(entry["size"]))
         if entry["color"]:
             parts.append(str(entry["color"]))
+        # ── GAT 1: SZALLITASI ORA — "a forras elhallgatott" ────────────────
+        # `as_of - max(first_seen_at)`: hany napja nem erkezett UJ het.
+        # A kuszob a SZALLITASI resekbol tanul, ugyanazzal a formulaval.
+        # Miert nem az observed_date-bol: az a KOZLESI ritmust meri, a `stale`
+        # viszont a mai naptol, amibe a publikalasi keses is beleszamit —
+        # ket ora keveredett egy osszehasonlitasban. Ez volt a gyoker.
+        szall = sorted(entry["szallitas"])
+        lefedett = entry["fedetlen"] == 0 and len(szall) > 0
+        if lefedett:
+            szall_gaps = _gap_days(szall)
+            szall_threshold = _kuszob_resekbol(szall_gaps)
+            szall_kor = (as_of - szall[-1]).days
+            stale_delivery = szall_kor > szall_threshold
+        else:
+            # Hianyos lefedettseg -> a gat NEM elesedik erre a sorozatra, DE a
+            # gyujtes fut tovabb es a hiany NEVESITVE latszik (nem csendes kihagyas).
+            szall_threshold = szall_kor = None
+            stale_delivery = False
+
+        # ── GAT 2: ADATKOR-PLAFON — "a forras regi adatot ad" ──────────────
+        kor = (as_of - days[-1]).days
+        stale_age = kor > ADATKOR_PLAFON_DAYS
+        # elavulas-jelzes: a fix konstans nem nemulhat el, ha a valosag elmozdul
+        plafon_kozel = (not stale_age) and kor > ADATKOR_PLAFON_DAYS - ADATKOR_FIGYELMEZTETES_NAP
+
+        # A KET JEL KULON CSELEKVEST kiván, ezert kulon is jelenik meg. Az
+        # osszevonas (`stale1 or stale2`) pont a cselekves-hataron tuntetne el a
+        # kulonbseget: "elhallgatott" vs "regi adatot ad" mas valaszt kér.
+        # MINDKET ok latszik, ha mindketto all. A `reason` az ELSODLEGES (a
+        # cselekveshez ez kell), a `reasons` a teljes kep. Az elsobbseg a
+        # szallitase: "a forras elhallgatott" konkretabb es surgetobb hir, mint
+        # "regi az adat" — utobbi gyakran az elobbi KOVETKEZMENYE. A teszt
+        # talalta meg, hogy egy sima `reason` mezoben az egyik jel nyom nelkul
+        # eltunik, pont azon a hataron, aminek a szetvalasztasaert az egesz
+        # atalakitas keszult.
+        reasons = ([("delivery")] if stale_delivery else []) + (["age"] if stale_age else [])
+        reason = reasons[0] if reasons else None
+        keses = entry["utolso_keses"][1] if entry["utolso_keses"] else None
         out.append(
             {
                 "key": "__".join(parts),
                 "label": entry["label"],
                 "updated_through": days[-1].isoformat(),
-                "days_since_update": (as_of - days[-1]).days,
+                "days_since_update": kor,
                 "stale_after_days": threshold,
-                "stale": (as_of - days[-1]).days > threshold,
+                "stale": stale_delivery or stale_age,
+                "reason": reason,
+                "reasons": reasons,
+                # szallitasi ora
+                "delivery_through": szall[-1].isoformat() if szall else None,
+                "days_since_delivery": szall_kor,
+                "delivery_stale_after_days": szall_threshold,
+                # adatkor
+                "age_ceiling_days": ADATKOR_PLAFON_DAYS,
+                "age_ceiling_near": plafon_kozel,
+                # megfigyelhetoseg: a publikalasi keses NEM riaszt, de latszik.
+                # Negativ ertek (elore datumozott kozles, merve -13-ig) NEM
+                # exportalhato ertekkent: kizarjuk es szamoljuk.
+                "publication_lag_days": keses if (keses is not None and keses >= 0) else None,
+                "publication_lag_negative": bool(keses is not None and keses < 0),
+                "first_seen_coverage_missing": entry["fedetlen"],
             }
         )
     out.sort(key=lambda item: item["days_since_update"], reverse=True)
@@ -447,6 +585,10 @@ def export_data_json(
         series["updated_through"] = row["updated_through"] if row else None
         series["days_since_update"] = row["days_since_update"] if row else None
         series["stale_after_days"] = row["stale_after_days"] if row else None
+    # A KET JEL KULON: a `reason` megmondja, MELYIK gat szolalt meg, mert a
+    # ket eset mas valaszt kér. "delivery" = a forras elhallgatott (nezd meg a
+    # forrast/parsert). "age" = pontosan szallit, de egyre regebbi adatot
+    # (a forras publikalasi rendje valtozott).
     stale = [
         {
             "key": row["key"],
@@ -454,10 +596,21 @@ def export_data_json(
             "updated_through": row["updated_through"],
             "days_since_update": row["days_since_update"],
             "stale_after_days": row["stale_after_days"],
+            "reason": row["reason"],
+            "reasons": row["reasons"],
+            "days_since_delivery": row["days_since_delivery"],
+            "delivery_stale_after_days": row["delivery_stale_after_days"],
         }
         for row in freshness_rows
         if row["stale"]
     ]
+    # ELAVULAS-JELZES es LEFEDETTSEG — uzemeltetesi hir, NEM riasztas.
+    # A fix adatkor-plafon elavulhat (egy forras legitim modon lassulhat); ha egy
+    # sorozat a plafon kozeleben jar, azt LATNI kell, mielott fals riasztas lesz belole.
+    # A hianyos lefedettsegu sorozatra a szallitasi gat NEM elesedik — ez sem maradhat
+    # csendes: nevesitve, nem csak egy szamkent.
+    plafon_kozel = sorted(r["key"] for r in freshness_rows if r["age_ceiling_near"])
+    fedetlen = sorted(r["key"] for r in freshness_rows if r["first_seen_coverage_missing"])
 
     payload = {
         "generated_at": datetime.now(ZoneInfo("Europe/Bucharest")).isoformat(timespec="seconds"),
@@ -469,6 +622,9 @@ def export_data_json(
             "fallback_stale_after_days": stale_after_days,
             "series_total": len(series_map),
             "series_stale": stale,
+            "age_ceiling_days": ADATKOR_PLAFON_DAYS,
+            "series_near_age_ceiling": plafon_kozel,
+            "series_without_delivery_history": fedetlen,
         },
         "categories": categories,
     }

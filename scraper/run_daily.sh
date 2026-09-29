@@ -72,7 +72,14 @@ send_alert() {
       # riasztas tenyleg megerkezett — enelkul az elozo valtozat a kuldes
       # MEGKISERLESEKOR mar "jelentett"-re allitotta a sorozatot, es egy bukott
       # kuldes VEGLEG elnyelte a jelzest.
-      : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
+      # ALERT-SPECIFIKUS NYUGTA: a marker megmondja, MILYEN riasztas ment ki.
+      # Ures/ismeretlen -> a scrape.py visszafele kompatibilisen nyugtanak veszi.
+      # Enelkul egy MASIK riasztas HTTP 200-a elnyelt volna egy elbukott
+      # stale-jelzest (a marker globalis volt, a nyugta viszont mindenre hatott).
+      cat "$PROJECT_ROOT/data/.alert-kind" 2>/dev/null \
+        > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}" \
+        || : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
+      rm -f "$PROJECT_ROOT/data/.alert-kind"
     else
       echo "watchdog: Telegram failure alert send failed (HTTP ${http_code:-none})" >&2
     fi
