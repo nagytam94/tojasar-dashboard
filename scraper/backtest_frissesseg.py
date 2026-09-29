@@ -42,8 +42,19 @@ DEFINICIOK (ezek AC-k, nem izles kerdese):
   STALE-NAP  — `(sorozat, nap)` parok szama, ahol a sorozat stale.
   NAP        — a tartomany azon naptari napjai, amelyre van `data.json` commit (115 a 117-bol;
                2026-09-07 es 09-08 hianyzik). A hianyzo napokat NEM interpolaljuk.
-  HIDEG      — a gat a tartomany elejen nullarol tanul (ezt latta volna a 06-05-i bekapcsolas).
-  MELEG      — a kuszob a TELJES tortenetbol szamol minden napon (ez a migracio utani valosag).
+  HIDEG      — a gat a tartomany elejen nullarol tanul. EZ A PRODUCTION-HU SZAM:
+               ezt latta volna egy 2026-06-05-i bekapcsolas, es ezt latna a migracio
+               utan is, mert a migracio a 3413 sorbol 2593-at EGYETLEN napra
+               (2026-06-05, az elso data.json-commit) tesz — a tortenet elotti
+               allapotot nem tudja rekonstrualni.
+  TELJES     — a kuszob a TELJES szallitasi tortenetbol szamol MINDEN napon,
+               a jovobeli reseket is beleertve. ⚠️ EZ LOOKAHEAD: NEM elerheto
+               multbeli allapot, csak a MAI kuszobok visszavetitese. A korabbi
+               valtozat ezt "MELEG indulas — a migracio utani valosag" neven
+               arulta, es ezzel a rungis 2026-07-28..30-i negy esemenyet eltuntette
+               (akkor a rendszer meg nem tudhatta a 07-31-i 20 napos rest).
+               Megtartjuk, mert a MAI kuszobok ellenorzesehez hasznos — de a
+               javulas merteket a HIDEG oszlop mondja meg.
 
 Futtatas:  python3 scraper/backtest_frissesseg.py [--json]
 Kilepokod: 0 = a mert szamok egyeznek a PINELT ertekekkel · 1 = elteres · 2 = nem merheto
@@ -79,7 +90,7 @@ ADATKOR_PLAFON_DAYS = 20        # Gat 2 — fix, nem tanult (v5)
 PINELT = {
     "mai":          {"esemeny": 17, "stale_nap": 45},
     "gat1_hideg":   {"esemeny": 4,  "stale_nap": 12},
-    "gat1_meleg":   {"esemeny": 0,  "stale_nap": 0},
+    "gat1_teljes":  {"esemeny": 0,  "stale_nap": 0},   # lookahead, l. a docstringet
     "gat2":         {"esemeny": 0,  "stale_nap": 0},
 }
 
@@ -215,10 +226,11 @@ def meres() -> dict:
         napi.append((nap, allapot))
 
     # a MELEG regime kuszobei: a TELJES szallitasi tortenetbol
-    meleg_kuszob = {k: _kuszob(_gap_days(sorted(v))) for k, v in szall.items()}
+    # ⚠️ LOOKAHEAD — szandekosan, es a nevben kimondva. NEM production-hu.
+    teljes_kuszob = {k: _kuszob(_gap_days(sorted(v))) for k, v in szall.items()}
 
     ered = {n: {"esemeny": 0, "stale_nap": 0}
-            for n in ("mai", "gat1_hideg", "gat1_meleg", "gat2")}
+            for n in ("mai", "gat1_hideg", "gat1_teljes", "gat2")}
     elozo: dict[str, dict[str, bool]] = defaultdict(lambda: defaultdict(bool))
 
     for nap, allapot in napi:
@@ -229,7 +241,7 @@ def meres() -> dict:
             most = {
                 "mai": kor > _kuszob(_gap_days(a["obs_mind"])),
                 "gat1_hideg": bool(a["szall"]) and (nap - a["szall"][-1]).days > _kuszob(_gap_days(a["szall"])),
-                "gat1_meleg": bool(a["szall"]) and (nap - a["szall"][-1]).days > meleg_kuszob.get(k, STALE_AFTER_DAYS),
+                "gat1_teljes": bool(a["szall"]) and (nap - a["szall"][-1]).days > teljes_kuszob.get(k, STALE_AFTER_DAYS),
                 "gat2": kor > ADATKOR_PLAFON_DAYS,
             }
             for nev, ertek in most.items():
@@ -309,10 +321,10 @@ def main() -> int:
         print(f"\n{'gat':<34} {'esemeny':>8} {'stale-nap':>10}   pinelt")
         print("-" * 70)
         cimke = {"mai": "MAI KOD (observed_date-ora)",
-                 "gat1_hideg": "Gat 1 szallitasi ora (HIDEG)",
-                 "gat1_meleg": "Gat 1 szallitasi ora (MELEG)",
+                 "gat1_hideg": "Gat 1 szallitasi ora (HIDEG = production-hu)",
+                 "gat1_teljes": "Gat 1 (TELJES tortenet - LOOKAHEAD, nem valos)",
                  "gat2": f"Gat 2 adatkor-plafon ({ADATKOR_PLAFON_DAYS})"}
-        for nev in ("mai", "gat1_hideg", "gat1_meleg", "gat2"):
+        for nev in ("mai", "gat1_hideg", "gat1_teljes", "gat2"):
             e, s = m["eredmeny"][nev]["esemeny"], m["eredmeny"][nev]["stale_nap"]
             p = PINELT[nev]
             jel = "OK" if (e == p["esemeny"] and s == p["stale_nap"]) else "ELTERES"

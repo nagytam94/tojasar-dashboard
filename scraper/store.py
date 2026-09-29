@@ -320,7 +320,13 @@ def _gap_days(days: list[date]) -> list[int]:
 
 
 def _kuszob_resekbol(gaps: list[int]) -> int:
-    """A kuszob-formula EGY helyen — a kozlesi es a szallitasi ora is ezt hasznalja.
+    """A kuszob-formula a SZALLITASI oranak (a kozlesi aganak sajat inline masolata van).
+
+    ⚠️ A docstring elso valtozata azt allitotta, hogy a formula "EGY helyen" el —
+    ez HAMIS volt: a kozlesi kuszobot tovabbra is a series_freshness inline
+    szamitasa hajtja. A kiemeles tehat DUPLIKALT, nem unifikalt. Szandekosan igy
+    marad egyelore: a kozlesi ag leptetese kulon valtozas, es a terv nem kerte.
+    Drift-kockazat: ha az egyiket modositod, a masikat is kell.
 
     Szandekosan ugyanaz a keplet, mint amit a series_freshness 2026-09-14 ota hasznal
     (RED1 N-4 csuszoablak + felso korlat): csak a BEMENET mas (szallitasi resek vs

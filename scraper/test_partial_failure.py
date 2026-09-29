@@ -477,7 +477,11 @@ def main() -> int:
               bool(state["pending_stale"]) and not state["reported_stale"], True)
 
         print("\n[B2b] IGAZOLT kezbesites utan -> mar NEM riaszt (esemeny, nem allapot)")
-        (db.parent / ".alert-sent").touch()      # a shell ezt csak HTTP 200-nal irja
+        # A shell ezt csak HTTP 200-nal irja — es 2026-09-29 ota MINDIG beleirja a
+        # riasztas TIPUSAT is ("stale" | "other"). Az ures marker mar NEM nyugta
+        # (fail-closed): korabban a shell allandoan ures markert gyartott, igy egy
+        # MASIK riasztas sikere elnyelt egy elbukott stale-jelzest.
+        (db.parent / ".alert-sent").write_text("stale\n")
         code, _, _ = run_main(db, out, all_frozen)
         check("kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
         check("a nyugta-marker elfogyott", (db.parent / ".alert-sent").exists(), False)

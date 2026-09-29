@@ -746,9 +746,15 @@ def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
         marker_tipus = marker.read_text(encoding="utf-8").strip()
     except OSError:
         pass
-    # Visszafele kompatibilitas: a REGI marker ures. Azt elfogadjuk nyugtanak,
-    # kulonben a valtas napjan minden fuggo jelzes ujra kimenne.
-    nyugta_ervenyes = marker_tipus in ("", "stale")
+    # FAIL-CLOSED (RED1 #6 / UJ-1). Az elso valtozat az URES markert is elfogadta
+    # nyugtanak ("visszafele kompatibilitas") — de a shell ALLANDOAN ures markert
+    # gyartott, tehat a kapu veglegesen nyitva maradt, es a javitas nem javitott
+    # semmit. A tesztje ráadásul "other"-t irt a markerbe: olyan erteket, amit a
+    # shell SOHA nem tudott eloallitani — zold teszt egy halott uton.
+    # Mostantol a shell mindig ir tipust ("stale" | "other"), es CSAK a "stale"
+    # nyugtaz stale-jelzest. Ismeretlen vagy ures tartalom -> NEM nyugta: inkabb
+    # szoljunk ketszer, mint egyszer se.
+    nyugta_ervenyes = marker_tipus == "stale"
 
     # 1. fazis nyugtazasa: az elozo futas riasztasa IGAZOLTAN kiment
     if marker.exists():
@@ -779,7 +785,14 @@ def newly_stale_series(db_path: Path, stale: list[dict[str, Any]]) -> list[str]:
     try:
         path.write_text(
             json.dumps(
-                {"reported_stale": sorted(reported), "pending_stale": sorted(pending)},
+                # VERZIO-MEZO (terv AC-25). A 2-es sema (kulcs, reason) parokat
+                # tarol. Kod-revert utan a REGI olvaso ezeket csupasz kulcsnak
+                # latna, `reported &= current` kiuritene, es minden sorozat
+                # "ujnak" latszana -> riasztas-aradat a rollback napjan. A mezo
+                # maga nem old meg mindent, de a visszaallitaskor LATHATO teszi,
+                # hogy a fajlt el kell dobni (a hianya = 1-es sema).
+                {"schema_version": 2,
+                 "reported_stale": sorted(reported), "pending_stale": sorted(pending)},
                 ensure_ascii=False,
                 indent=2,
             )
@@ -846,7 +859,8 @@ def main(argv: list[str] | None = None) -> int:
     # RED1 N-2 (2026-09-14): a frissesseg MINDIG a DB-bol jon, az exporttol
     # FUGGETLENUL. Az elso valtozat az export agan szamolta, ezert pont akkor
     # volt vak ra, amikor a rendszer a leginkabb romlott.
-    stale = [row for row in series_freshness(args.db) if row["stale"]]
+    freshness_rows = series_freshness(args.db)
+    stale = [row for row in freshness_rows if row["stale"]]
     if stale:
         print(f"stale series: {len(stale)}")
 
@@ -897,7 +911,10 @@ def main(argv: list[str] | None = None) -> int:
             if ok == "delivery":
                 return (f"{key} [szallitas: {it.get('days_since_delivery')}d > "
                         f"{it.get('delivery_stale_after_days')}d]")
-            return f"{key} [adatkor: {it['days_since_update']}d > {it['stale_after_days']}d]"
+            # A LEVALTOTT `stale_after_days` a REGI, observed_date-alapu kuszob
+            # (EU: 14) — nem az, ami elsult. Az "age" agon a plafon dontott.
+            return (f"{key} [adatkor: {it['days_since_update']}d > "
+                    f"{it.get('age_ceiling_days')}d plafon]")
         details = ", ".join(_reszlet(k) for k in newly[:5])
         warn(f"{len(newly)} series newly stale: {details}")
         _alert_kind_ir(args.db, "stale")
@@ -923,6 +940,26 @@ def main(argv: list[str] | None = None) -> int:
             f"degraded: {len(stale)} series stale (already reported) - "
             f"see dashboard freshness banner"
         )
+        return EXIT_DEGRADED
+
+    # ELAVULAS-JELZES (terv AC-13). A Gat 2 plafonja FIX konstans: elavulhat, ha
+    # egy forras legitim modon lassul. Ha barmely sorozat a plafon 2 napos
+    # korzetebe er, azt LATNI kell, mielott fals riasztas lesz belole — de ez
+    # uzemeltetesi hir, NEM riado: EXIT_DEGRADED, sosem EXIT_ALERT.
+    kozel = [r["key"] for r in freshness_rows if r.get("age_ceiling_near")]
+    if kozel:
+        warn(f"degraded: {len(kozel)} series within "
+             f"{store.ADATKOR_FIGYELMEZTETES_NAP}d of the {store.ADATKOR_PLAFON_DAYS}d "
+             f"age ceiling: {', '.join(kozel[:5])} - a fix plafon elavulhat")
+        return EXIT_DEGRADED
+
+    # A KIKAPCSOLT GAT NEM MARADHAT CSENDES (terv AC-18). Hianyos first_seen
+    # eseten a szallitasi gat arra a sorozatra nem elesedik. Eddig ez CSAK a
+    # data.json-ban latszott — egy mezoben, amit senki nem nez.
+    fedetlen = [r["key"] for r in freshness_rows if r.get("first_seen_coverage_missing")]
+    if fedetlen:
+        warn(f"degraded: {len(fedetlen)} series without complete delivery history "
+             f"(a szallitasi gat rajuk NEM elesedik): {', '.join(fedetlen[:5])}")
         return EXIT_DEGRADED
 
     if failures:

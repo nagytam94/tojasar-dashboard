@@ -20,6 +20,19 @@ TIMEOUT_MISSING=0
 # `exit`-tel zart, ezert a riasztas megette a publikalast: egyetlen lemarado
 # sorozat miatt a dashboard veglegesen befagyott volna.)
 send_alert() {
+  # A riasztas TIPUSAT a scrape.py hagyja hatra a .alert-kind fajlban, de CSAK a
+  # stale-agon. ELFOGYASZTJUK MOST, a kuldes ELOTT: ha bennragadna egy korabbi,
+  # bukott kuldesbol, egy KESOBBI, teljesen mas riasztas HTTP 200-a nyugtazna vele
+  # a stale-jelzest (RED1 #6 / UJ-3 — pontosan az a hibaosztaly, ami ellen a
+  # kind-mezo keszult). Ami itt nincs, az "other": egy nem-stale riasztas.
+  local alert_kind_file="$PROJECT_ROOT/data/.alert-kind"
+  local alert_kind="other"
+  if [[ -r "$alert_kind_file" ]]; then
+    alert_kind="$(tr -d '[:space:]' < "$alert_kind_file")"
+    [[ -n "$alert_kind" ]] || alert_kind="other"
+  fi
+  rm -f "$alert_kind_file"
+
   local exit_code="${1:-1}"
   set +e
 
@@ -72,14 +85,11 @@ send_alert() {
       # riasztas tenyleg megerkezett — enelkul az elozo valtozat a kuldes
       # MEGKISERLESEKOR mar "jelentett"-re allitotta a sorozatot, es egy bukott
       # kuldes VEGLEG elnyelte a jelzest.
-      # ALERT-SPECIFIKUS NYUGTA: a marker megmondja, MILYEN riasztas ment ki.
-      # Ures/ismeretlen -> a scrape.py visszafele kompatibilisen nyugtanak veszi.
-      # Enelkul egy MASIK riasztas HTTP 200-a elnyelt volna egy elbukott
-      # stale-jelzest (a marker globalis volt, a nyugta viszont mindenre hatott).
-      cat "$PROJECT_ROOT/data/.alert-kind" 2>/dev/null \
-        > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}" \
-        || : > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
-      rm -f "$PROJECT_ROOT/data/.alert-kind"
+      # ALERT-SPECIFIKUS NYUGTA: a marker MINDIG megmondja, milyen riasztas ment
+      # ki ("stale" vagy "other") — sosem ures. A scrape.py fail-closed: csak a
+      # "stale" nyugtaz stale-jelzest.
+      printf '%s\n' "$alert_kind" \
+        > "${TOJASAR_ALERT_MARKER:-$PROJECT_ROOT/data/.alert-sent}"
     else
       echo "watchdog: Telegram failure alert send failed (HTTP ${http_code:-none})" >&2
     fi

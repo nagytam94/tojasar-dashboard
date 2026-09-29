@@ -71,6 +71,47 @@ def main() -> int:
     elso = date(2026, 3, 2)          # hetfo
 
     # ─────────────────────────────────────────────────────────────────────
+    # EZ A LEGFONTOSABB TESZT A FAJLBAN. A `COALESCE` az egesz atalakitas
+    # tartooszlopa: ha az upsert felulirna a first_seen_at-et, minden napi futas
+    # nullazna a szallitasi orat (0 res -> fallback, szallitasi kor 0), es a
+    # Gat 1 OROKRE nema lenne — miközben minden zoldnek latszana.
+    # A RED1 #6 megmerte: a COALESCE kicserelese `excluded`-re 118/118 zold
+    # tesztet hagyott, mert egyetlen teszt sem upsertalt UJRA ugyanarra a hetre.
+    # A terv AC-23 piros agat kimondta; a teszt hianyzott.
+    print("\n# AC-23 — az UJRA-UPSERT nem mozdithatja a szallitasi orat")
+    with tempfile.TemporaryDirectory() as td:
+        db = _db(Path(td))
+        with store.connect(db) as c:
+            store.init_db(c)
+            sid = _sorozat(c, "ismetelt")
+            # 1. nap: uj het erkezik
+            _het(c, sid, "2026-W40", date(2026, 9, 28), date(2026, 9, 29))
+            r1 = c.execute("SELECT first_seen_at, first_seen_src, fetched_at, price "
+                           "FROM observation WHERE week_iso='2026-W40'").fetchone()
+            # 8. nap: UGYANAZ a het jon ujra, frissebb arral es fetched_at-tel
+            store.upsert_observation(
+                c, series_id=sid, week_iso="2026-W40", observed_date="2026-09-28",
+                price=9.99, change=None, native_price=None, native_unit=None,
+                fx_rate=None, fx_rate_unit=None, fx_rate_date=None, fx_source=None,
+                fetched_at="2026-10-06T06:00:00+00:00", raw={},
+                first_seen_at="2026-10-06")
+            r2 = c.execute("SELECT first_seen_at, first_seen_src, fetched_at, price "
+                           "FROM observation WHERE week_iso='2026-W40'").fetchone()
+            # majd egy KOVETKEZO het
+            _het(c, sid, "2026-W41", date(2026, 10, 5), date(2026, 10, 6))
+            r3 = c.execute("SELECT first_seen_at FROM observation "
+                           "WHERE week_iso='2026-W41'").fetchone()
+        check("1. beiras: a szallitasi ora indul", r1["first_seen_at"], "2026-09-29")
+        check("  ... es a provenance 'scrape'", r1["first_seen_src"], "scrape")
+        check("UJRA-UPSERT: a first_seen_at NEM MOZDUL", r2["first_seen_at"], "2026-09-29")
+        check("  ... a provenance sem", r2["first_seen_src"], "scrape")
+        check("  ... de a fetched_at FRISSUL (a ketto kulonbsege a keses)",
+              r2["fetched_at"][:10], "2026-10-06")
+        check("  ... es az ar is frissul (nem fagyasztottuk be az egesz sort)",
+              r2["price"], 9.99)
+        check("KOVETKEZO het: sajat, uj first_seen-t kap", r3["first_seen_at"], "2026-10-06")
+
+    # ─────────────────────────────────────────────────────────────────────
     print("\n# GAT 1 — szallitasi ora")
     with tempfile.TemporaryDirectory() as td:        # cleanup-fegyelem (trap/finally)
         db = _db(Path(td))
@@ -224,7 +265,17 @@ def main() -> int:
         raw = _json.loads(allapot.read_text())
         check("1. kor: a jelzes fuggoben", raw["pending_stale"], ["valami:delivery"])
 
-        # 2. kor: egy MASIK riasztas ment ki sikeresen (marker tartalma: 'other')
+        # 2/a: URES marker -> FAIL-CLOSED, NEM nyugta.
+        # Ez az elso valtozat lyuka volt: az ures markert elfogadta "visszafele
+        # kompatibilitasbol", kozben a shell ALLANDOAN ures markert gyartott.
+        marker.write_text("")
+        scrape.newly_stale_series(db, stale_lista)
+        raw = _json.loads(allapot.read_text())
+        check("URES marker: NEM nyugta (fail-closed)", raw["pending_stale"],
+              ["valami:delivery"])
+
+        # 2/b: egy MASIK riasztas ment ki sikeresen. A shell ilyenkor "other"-t ir
+        # — ez VALODI ertek, nem kitalalt: l. a szerzodes-tesztet lent.
         marker.write_text("other\n")
         scrape.newly_stale_series(db, stale_lista)
         raw = _json.loads(allapot.read_text())
@@ -250,6 +301,23 @@ def main() -> int:
                                                 "days_since_update": 30,
                                                 "stale_after_days": 14}])
         check("a deploy napjan NEM riasztunk ujra a formatumvaltas miatt", friss, [])
+
+    # ─────────────────────────────────────────────────────────────────────
+    # SZERZODES a shell es a Python kozott. A RED1 #6 leletje: a teszt olyan
+    # marker-erteket hasznalt ("other"), amit a shell SOHA nem tudott eloallitani
+    # — zold teszt egy halott uton. Ezert most a shell FORRASABOL ellenorizzuk,
+    # hogy a ket oldal ugyanarrol beszel-e.
+    print("\n# SZERZODES — a run_daily.sh tenylegesen eloallitja-e a vart ertekeket")
+    sh = (Path(__file__).resolve().parent / "run_daily.sh").read_text(encoding="utf-8")
+    check("a shell MINDIG ir tipust a markerbe (sosem ures)",
+          "printf '%s\\n' \"$alert_kind\"" in sh, True)
+    check("  ... es az alapertelmezes 'other', ha nincs .alert-kind",
+          'alert_kind="other"' in sh, True)
+    check("  ... a .alert-kind a kuldes ELEJEN elfogy (nem ragadhat benn)",
+          sh.index('rm -f "$alert_kind_file"') < sh.index("api.telegram.org"), True)
+    check("a Python CSAK a 'stale'-t fogadja el nyugtanak",
+          'nyugta_ervenyes = marker_tipus == "stale"' in
+          (Path(__file__).resolve().parent / "scrape.py").read_text(encoding="utf-8"), True)
 
     print("\n" + "=" * 66)
     bukott = [r for r in results if not r[1]]
