@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-08T09:00:19+03:00",
+  "generated_at": "2026-10-09T09:00:18+03:00",
   "schema_version": "0.5",
   "freshness": {
-    "as_of": "2026-10-08",
+    "as_of": "2026-10-09",
     "fallback_stale_after_days": 21,
     "series_total": 50,
     "series_stale": [],
@@ -136,7 +136,7 @@
               "week": "2025-W41",
               "date": "2025-10-08",
               "price": 0.405,
-              "change": 0.0
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -443,10 +443,16 @@
               "date": "2026-09-30",
               "price": 0.345,
               "change": -0.01
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
+              "price": 0.33,
+              "change": -0.02
             }
           ],
-          "updated_through": "2026-09-30",
-          "days_since_update": 8,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -569,7 +575,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 0.3171,
-              "change": 0.0
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -873,13 +879,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 0.3379,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
               "price": 0.3379,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 14
         }
       ]
@@ -1325,7 +1337,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -1448,7 +1460,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.15,
-              "change": 0.05
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -1752,13 +1764,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
               "price": 1.61,
-              "change": null
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
+              "price": 1.625,
+              "change": 0.01
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 14
         },
         {
@@ -2197,7 +2215,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -2636,7 +2654,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         }
       ]
@@ -2766,7 +2784,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 11.45,
-              "change": 0.3
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -3070,13 +3088,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 7.3,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 7.3,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -3199,7 +3223,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 12.95,
-              "change": 0.4
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -3503,13 +3527,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 9.35,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 9.35,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -3632,7 +3662,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 13.95,
-              "change": 0.5
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -3936,13 +3966,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 10.05,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 10.05,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -4065,7 +4101,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 14.45,
-              "change": 0.5
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -4369,13 +4405,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 10.55,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 10.55,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -4498,7 +4540,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 15.0,
-              "change": 0.6
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -4802,13 +4844,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 10.9,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 10.9,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -4931,7 +4979,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 15.8,
-              "change": 0.65
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -5235,13 +5283,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 11.6,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 11.6,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -5364,7 +5418,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 16.25,
-              "change": 0.6
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -5668,13 +5722,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 12.5,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 12.5,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -5797,7 +5857,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.39,
-              "change": 0.07
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -6101,13 +6161,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.52,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.52,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -6230,7 +6296,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.4,
-              "change": 0.08
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -6534,13 +6600,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.73,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.73,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -6663,7 +6735,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.45,
-              "change": 0.09
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -6967,13 +7039,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.76,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.76,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -7096,7 +7174,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.45,
-              "change": 0.09
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -7400,13 +7478,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.79,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.79,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -7529,7 +7613,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.46,
-              "change": 0.1
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -7833,13 +7917,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.79,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.79,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -7962,7 +8052,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.47,
-              "change": 0.1
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -8266,13 +8356,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.81,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.81,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -8395,7 +8491,7 @@
               "week": "2025-W41",
               "date": "2025-10-10",
               "price": 2.43,
-              "change": 0.09
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -8699,13 +8795,19 @@
             },
             {
               "week": "2026-W40",
-              "date": "2026-10-01",
+              "date": "2026-10-02",
+              "price": 1.87,
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-07",
               "price": 1.87,
               "change": null
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-07",
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -8828,7 +8930,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 17.1,
-              "change": 0.34
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -9135,10 +9237,16 @@
               "date": "2026-09-29",
               "price": 12.43,
               "change": 0.13
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 12.5,
+              "change": 0.07
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -9261,7 +9369,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 16.7,
-              "change": 0.34
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -9568,10 +9676,16 @@
               "date": "2026-09-29",
               "price": 11.93,
               "change": 0.13
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 12.0,
+              "change": 0.07
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -9694,7 +9808,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 15.09,
-              "change": 0.29
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -10001,10 +10115,16 @@
               "date": "2026-09-29",
               "price": 11.32,
               "change": 0.11
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 11.38,
+              "change": 0.06
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -10127,7 +10247,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 14.44,
-              "change": 0.29
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -10434,10 +10554,16 @@
               "date": "2026-09-29",
               "price": 10.37,
               "change": 0.11
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 10.43,
+              "change": 0.06
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -10560,7 +10686,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 11.77,
-              "change": 0.24
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -10867,10 +10993,16 @@
               "date": "2026-09-29",
               "price": 8.61,
               "change": 0.09
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 8.66,
+              "change": 0.05
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -10993,7 +11125,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 11.67,
-              "change": 0.24
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -11300,10 +11432,16 @@
               "date": "2026-09-29",
               "price": 8.31,
               "change": 0.09
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 8.36,
+              "change": 0.05
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -11426,7 +11564,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 19.28,
-              "change": 0.37
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -11733,10 +11871,16 @@
               "date": "2026-09-29",
               "price": 14.25,
               "change": 0.14
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 14.32,
+              "change": 0.07
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -11859,7 +12003,7 @@
               "week": "2025-W41",
               "date": "2025-10-07",
               "price": 18.88,
-              "change": 0.37
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -12166,10 +12310,16 @@
               "date": "2026-09-29",
               "price": 13.75,
               "change": 0.14
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-06",
+              "price": 13.82,
+              "change": 0.07
             }
           ],
-          "updated_through": "2026-09-29",
-          "days_since_update": 9,
+          "updated_through": "2026-10-06",
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -12292,7 +12442,7 @@
               "week": "2025-W41",
               "date": "2025-10-09",
               "price": 16.7,
-              "change": 0.15
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -12592,11 +12742,17 @@
               "week": "2026-W40",
               "date": "2026-10-01",
               "price": 16.85,
-              "change": null
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
+              "price": 16.7,
+              "change": -0.15
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 15
         },
         {
@@ -12719,7 +12875,7 @@
               "week": "2025-W41",
               "date": "2025-10-09",
               "price": 16.1,
-              "change": 0.15
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -13019,11 +13175,17 @@
               "week": "2026-W40",
               "date": "2026-10-01",
               "price": 15.1,
-              "change": null
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
+              "price": 15.25,
+              "change": 0.15
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 15
         },
         {
@@ -13146,7 +13308,7 @@
               "week": "2025-W41",
               "date": "2025-10-09",
               "price": 15.8,
-              "change": 0.1
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -13447,10 +13609,16 @@
               "date": "2026-10-01",
               "price": 12.7,
               "change": 0.1
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
+              "price": 12.85,
+              "change": 0.15
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 15
         },
         {
@@ -13573,7 +13741,7 @@
               "week": "2025-W41",
               "date": "2025-10-09",
               "price": 17.0,
-              "change": 0.15
+              "change": null
             },
             {
               "week": "2025-W42",
@@ -13873,11 +14041,17 @@
               "week": "2026-W40",
               "date": "2026-10-01",
               "price": 17.95,
-              "change": null
+              "change": 0.0
+            },
+            {
+              "week": "2026-W41",
+              "date": "2026-10-08",
+              "price": 17.8,
+              "change": -0.15
             }
           ],
-          "updated_through": "2026-10-01",
-          "days_since_update": 7,
+          "updated_through": "2026-10-08",
+          "days_since_update": 1,
           "stale_after_days": 15
         },
         {
@@ -14316,7 +14490,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -14755,7 +14929,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -15194,7 +15368,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -15633,7 +15807,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -16072,7 +16246,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -16511,7 +16685,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -16950,7 +17124,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -17389,7 +17563,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -17828,7 +18002,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -18267,7 +18441,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -18706,7 +18880,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -19145,7 +19319,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -19584,7 +19758,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -20023,7 +20197,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -20462,7 +20636,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -20901,7 +21075,7 @@
             }
           ],
           "updated_through": "2026-10-02",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         }
       ]
@@ -21149,7 +21323,7 @@
             }
           ],
           "updated_through": "2026-10-05",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         }
       ]
@@ -21589,7 +21763,7 @@
             }
           ],
           "updated_through": "2026-09-28",
-          "days_since_update": 10,
+          "days_since_update": 11,
           "stale_after_days": 14
         }
       ]
