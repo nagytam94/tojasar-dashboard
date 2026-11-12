@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-11T09:03:13+02:00",
+  "generated_at": "2026-11-12T09:03:46+02:00",
   "schema_version": "0.5",
   "freshness": {
-    "as_of": "2026-11-11",
+    "as_of": "2026-11-12",
     "fallback_stale_after_days": 21,
     "series_total": 50,
     "series_stale": [],
@@ -166,7 +166,7 @@
               "week": "2025-W46",
               "date": "2025-11-12",
               "price": 0.305,
-              "change": 0.0
+              "change": null
             },
             {
               "week": "2025-W47",
@@ -473,10 +473,16 @@
               "date": "2026-11-04",
               "price": 0.23,
               "change": -0.02
+            },
+            {
+              "week": "2026-W46",
+              "date": "2026-11-11",
+              "price": 0.22,
+              "change": -0.01
             }
           ],
-          "updated_through": "2026-11-04",
-          "days_since_update": 7,
+          "updated_through": "2026-11-11",
+          "days_since_update": 1,
           "stale_after_days": 14
         },
         {
@@ -939,7 +945,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         }
       ]
@@ -1415,7 +1421,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -1878,7 +1884,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -2347,7 +2353,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -2816,7 +2822,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         }
       ]
@@ -3286,7 +3292,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -3749,7 +3755,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -4212,7 +4218,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -4675,7 +4681,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -5138,7 +5144,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -5601,7 +5607,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -6064,7 +6070,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -6527,7 +6533,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -6990,7 +6996,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -7453,7 +7459,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -7916,7 +7922,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -8379,7 +8385,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -8842,7 +8848,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -9305,7 +9311,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 14
         },
         {
@@ -9774,7 +9780,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -10243,7 +10249,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -10712,7 +10718,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -11181,7 +11187,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -11650,7 +11656,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -12119,7 +12125,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -12588,7 +12594,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -13057,7 +13063,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -13514,7 +13520,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 15
         },
         {
@@ -13971,7 +13977,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 15
         },
         {
@@ -14428,7 +14434,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 15
         },
         {
@@ -14885,7 +14891,7 @@
             }
           ],
           "updated_through": "2026-11-05",
-          "days_since_update": 6,
+          "days_since_update": 7,
           "stale_after_days": 15
         },
         {
@@ -15354,7 +15360,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -15823,7 +15829,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -16292,7 +16298,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -16761,7 +16767,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -17230,7 +17236,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -17699,7 +17705,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -18168,7 +18174,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -18637,7 +18643,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -19106,7 +19112,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -19575,7 +19581,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -20044,7 +20050,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -20513,7 +20519,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -20982,7 +20988,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -21451,7 +21457,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -21920,7 +21926,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         },
         {
@@ -22389,7 +22395,7 @@
             }
           ],
           "updated_through": "2026-11-06",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 14
         }
       ]
@@ -22697,7 +22703,7 @@
             }
           ],
           "updated_through": "2026-11-09",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         }
       ]
@@ -23161,7 +23167,7 @@
             }
           ],
           "updated_through": "2026-10-26",
-          "days_since_update": 16,
+          "days_since_update": 17,
           "stale_after_days": 14
         }
       ]
