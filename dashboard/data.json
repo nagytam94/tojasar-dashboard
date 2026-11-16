@@ -1,15 +1,27 @@
 {
-  "generated_at": "2026-11-15T09:04:46+02:00",
+  "generated_at": "2026-11-16T09:04:35+02:00",
   "schema_version": "0.5",
   "freshness": {
-    "as_of": "2026-11-15",
+    "as_of": "2026-11-16",
     "fallback_stale_after_days": 21,
     "series_total": 50,
-    "series_stale": [],
-    "age_ceiling_days": 20,
-    "series_near_age_ceiling": [
-      "eu_whole_broiler_65"
+    "series_stale": [
+      {
+        "key": "eu_whole_broiler_65",
+        "label": "EU Whole broiler (65%)",
+        "updated_through": "2026-10-26",
+        "days_since_update": 21,
+        "stale_after_days": 14,
+        "reason": "age",
+        "reasons": [
+          "age"
+        ],
+        "days_since_delivery": 11,
+        "delivery_stale_after_days": 15
+      }
     ],
+    "age_ceiling_days": 20,
+    "series_near_age_ceiling": [],
     "series_without_delivery_history": []
   },
   "categories": [
@@ -484,7 +496,7 @@
             }
           ],
           "updated_through": "2026-11-11",
-          "days_since_update": 4,
+          "days_since_update": 5,
           "stale_after_days": 14
         },
         {
@@ -953,7 +965,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         }
       ]
@@ -1435,7 +1447,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -1904,7 +1916,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -2379,7 +2391,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -2854,7 +2866,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         }
       ]
@@ -3330,7 +3342,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -3799,7 +3811,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -4268,7 +4280,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -4737,7 +4749,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -5206,7 +5218,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -5675,7 +5687,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -6144,7 +6156,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -6613,7 +6625,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -7082,7 +7094,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -7551,7 +7563,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8020,7 +8032,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8489,7 +8501,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -8958,7 +8970,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -9427,7 +9439,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 14
         },
         {
@@ -9896,7 +9908,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -10365,7 +10377,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -10834,7 +10846,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -11303,7 +11315,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -11772,7 +11784,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -12241,7 +12253,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -12710,7 +12722,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -13179,7 +13191,7 @@
             }
           ],
           "updated_through": "2026-11-10",
-          "days_since_update": 5,
+          "days_since_update": 6,
           "stale_after_days": 15
         },
         {
@@ -13642,7 +13654,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -14105,7 +14117,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -14568,7 +14580,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -15031,7 +15043,7 @@
             }
           ],
           "updated_through": "2026-11-12",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -15506,7 +15518,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -15981,7 +15993,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -16456,7 +16468,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -16931,7 +16943,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -17406,7 +17418,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -17881,7 +17893,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -18356,7 +18368,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -18831,7 +18843,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -19306,7 +19318,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -19781,7 +19793,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -20256,7 +20268,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -20731,7 +20743,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -21206,7 +21218,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -21681,7 +21693,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -22156,7 +22168,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -22631,7 +22643,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         }
       ]
@@ -22936,10 +22948,22 @@
               "fx_rate_unit": "PLN/EUR",
               "fx_rate_date": "2026-11-09",
               "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
+            },
+            {
+              "week": "2026-W47",
+              "date": "2026-11-16",
+              "price": 0.643801,
+              "change": null,
+              "native_price": 2.84,
+              "native_unit": "PLN/db",
+              "fx_rate": 4.4113,
+              "fx_rate_unit": "PLN/EUR",
+              "fx_rate_date": "2026-11-13",
+              "fx_source": "ECB EXR.D.PLN.EUR.SP00.A"
             }
           ],
-          "updated_through": "2026-11-09",
-          "days_since_update": 6,
+          "updated_through": "2026-11-16",
+          "days_since_update": 0,
           "stale_after_days": 14
         }
       ]
@@ -23403,7 +23427,7 @@
             }
           ],
           "updated_through": "2026-10-26",
-          "days_since_update": 20,
+          "days_since_update": 21,
           "stale_after_days": 14
         }
       ]
