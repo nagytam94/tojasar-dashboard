@@ -24,10 +24,16 @@ from urllib3.util.retry import Retry
 
 try:
     from .sources import EXPORT_UNIT, Source, get_sources
-    from .store import DB_PATH, EXPORT_PATH, export_data_json, series_freshness, store_observations
+    from .store import (
+        ADATKOR_FIGYELMEZTETES_NAP, ADATKOR_PLAFON_DAYS, DB_PATH, EXPORT_PATH,
+        export_data_json, series_freshness, store_observations,
+    )
 except ImportError:  # direct script execution
     from sources import EXPORT_UNIT, Source, get_sources
-    from store import DB_PATH, EXPORT_PATH, export_data_json, series_freshness, store_observations
+    from store import (
+        ADATKOR_FIGYELMEZTETES_NAP, ADATKOR_PLAFON_DAYS, DB_PATH, EXPORT_PATH,
+        export_data_json, series_freshness, store_observations,
+    )
 
 
 USER_AGENT = "Cloudus-Tojasar-Scraper/0.1 (+local dashboard; contact: owner)"
@@ -949,7 +955,7 @@ def main(argv: list[str] | None = None) -> int:
     kozel = [r["key"] for r in freshness_rows if r.get("age_ceiling_near")]
     if kozel:
         warn(f"degraded: {len(kozel)} series within "
-             f"{store.ADATKOR_FIGYELMEZTETES_NAP}d of the {store.ADATKOR_PLAFON_DAYS}d "
+             f"{ADATKOR_FIGYELMEZTETES_NAP}d of the {ADATKOR_PLAFON_DAYS}d "
              f"age ceiling: {', '.join(kozel[:5])} - a fix plafon elavulhat")
         return EXIT_DEGRADED
 

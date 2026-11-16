@@ -690,6 +690,41 @@ def main() -> int:
                   "60 napja" in ui["elavult"].get("txt", ""), True)
             check("v0.4-en a savo REJTVE", ui["v04_nincs_freshness"].get("display"), "none")
 
+        # 2026-11-17: a plafon-kozel ag `store.ADATKOR_*`-ra hivatkozott, de a
+        # `store` modul nem volt importalva -> NameError, 11-14 ota minden futas
+        # crash-exit a publikalas UTAN (hamis napi riasztas), es a mogotte allo
+        # fedetlen-ag sem futott. Egyik ag sem volt tesztelve: ez tette lehetove.
+        # Itt MINDKET kesoi agat vegigjarjuk a valodi main()-nel.
+        print("\n[H] Plafon-kozel es fedetlen ag: lefut, nem dob [11-17 NameError]")
+        eredeti_freshness = scrape.series_freshness
+
+        def jelolt_freshness(mezo):
+            def _f(db):
+                rows = eredeti_freshness(db)
+                if rows:
+                    rows[0][mezo] = True
+                return rows
+            return _f
+
+        for tag, mezo in (("h1", "age_ceiling_near"), ("h2", "first_seen_coverage_missing")):
+            db, out = tmp / f"{tag}.db", tmp / f"{tag}.json"
+            seed(db, recent)
+            scrape.series_freshness = jelolt_freshness(mezo)
+            hiba = ""
+            stderr = io.StringIO()
+            try:
+                with contextlib.redirect_stderr(stderr):
+                    code, _, _ = run_main(db, out, all_ok)
+            except Exception as exc:  # a NameError itt jelentkezett
+                code, hiba = None, f"{type(exc).__name__}: {exc}"
+            finally:
+                scrape.series_freshness = eredeti_freshness
+            check(f"{mezo}: main() nem dob kivetelt", hiba, "")
+            check(f"{mezo}: kilepesi kod = EXIT_DEGRADED", code, scrape.EXIT_DEGRADED)
+            if mezo == "age_ceiling_near":
+                check("a figyelmeztetes kiirja a plafont",
+                      f"of the {store.ADATKOR_PLAFON_DAYS}d" in stderr.getvalue(), True)
+
     failed = [r for r in results if not r[1]]
     print("\n" + "=" * 66)
     print(f"OSSZESEN {len(results)} allitas, BUKOTT {len(failed)}")
