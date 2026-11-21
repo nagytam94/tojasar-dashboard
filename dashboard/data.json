@@ -1,26 +1,11 @@
 {
-  "generated_at": "2026-11-21T09:04:21+02:00",
+  "generated_at": "2026-11-21T21:51:05+02:00",
   "schema_version": "0.5",
   "freshness": {
     "as_of": "2026-11-21",
     "fallback_stale_after_days": 21,
     "series_total": 50,
-    "series_stale": [
-      {
-        "key": "eu_whole_broiler_65",
-        "label": "EU Whole broiler (65%)",
-        "updated_through": "2026-10-26",
-        "days_since_update": 26,
-        "stale_after_days": 14,
-        "reason": "delivery",
-        "reasons": [
-          "delivery",
-          "age"
-        ],
-        "days_since_delivery": 16,
-        "delivery_stale_after_days": 15
-      }
-    ],
+    "series_stale": [],
     "age_ceiling_days": 20,
     "series_near_age_ceiling": [],
     "series_without_delivery_history": []
@@ -23605,11 +23590,17 @@
               "date": "2026-10-26",
               "price": 284.27,
               "change": 0.75
+            },
+            {
+              "week": "2026-W46",
+              "date": "2026-11-09",
+              "price": 287.45,
+              "change": null
             }
           ],
-          "updated_through": "2026-10-26",
-          "days_since_update": 26,
-          "stale_after_days": 14
+          "updated_through": "2026-11-09",
+          "days_since_update": 12,
+          "stale_after_days": 21
         }
       ]
     }

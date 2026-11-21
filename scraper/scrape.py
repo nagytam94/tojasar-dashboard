@@ -45,6 +45,7 @@ PRICE_RE = re.compile(r"€\s*([+-]?\d+(?:[.,]\d+)?)")
 CHANGE_RE = re.compile(r"€\s*[+-]?\d+(?:[.,]\d+)?\s+([+-]\d+(?:[.,]\d+)?)")
 SIZE_TOKENS = {"XL", "L", "M", "S"}
 COLOR_TOKENS = {"wit", "bruin"}
+EU_BROILER_PDF_URL = "https://agriculture.ec.europa.eu/document/download/0ce25b9f-1571-4310-8531-3fe3346c49e0_en"
 EU_BROILER_PRODUCT_NAMES = {"Whole broiler (65%)", "0207 11 30"}
 ECB_PLN_SERIES_URL = "https://data-api.ecb.europa.eu/service/data/EXR/D.PLN.EUR.SP00.A"
 CHICK_LINES = (
@@ -240,6 +241,113 @@ def scrape_cenyrolnicze_chicks(session: requests.Session, source: Source) -> lis
 
 
 def scrape_eu_broiler(session: requests.Session, source: Source) -> list[dict[str, Any]]:
+    """Elsodleges: EC agrifood API (teljes tortenet). Tartalek: a DG AGRI heti
+    poultry-dashboard PDF (csak a LEGUTOBBI het). Az API 2026-10-26 ota
+    SUSPENDED (HTTP 500, code 303001) — ekkor a PDF-ag adja a friss hetet."""
+    try:
+        observations = scrape_eu_broiler_api(session, source)
+        if observations:
+            return observations
+        warn(f"{source.key}: EC API returned no rows - falling back to DG AGRI PDF")
+    except Exception as exc:
+        warn(f"{source.key}: EC API failed ({exc}) - falling back to DG AGRI PDF")
+    return scrape_eu_broiler_pdf(session, source)
+
+
+def parse_eu_broiler_dashboard_text(text: str) -> dict[str, Any]:
+    """A pdftotext -layout kimenetbol: het, ar, frissites datuma. Hibat dob, ha
+    a szerkezet nem ismerheto fel (inkabb hangos bukas, mint rossz adat)."""
+    upd = re.search(r"Last update:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})", text)
+    block = re.search(
+        r"WEEK\s+PRICES\s+(\d{1,2})\s+last WEEK.*?BROILER\s+(\d{2,3}(?:\.\d+)?)\s+([+-]\s*\d+(?:\.\d+)?)\s*%",
+        text,
+        re.DOTALL,
+    )
+    if not upd or not block:
+        raise ValueError("DG AGRI poultry dashboard: unrecognised layout")
+    updated = date(int(upd.group(3)), int(upd.group(2)), int(upd.group(1)))
+    week = int(block.group(1))
+    price = float(block.group(2))
+    if not 1 <= week <= 53 or not 50 <= price <= 1000:
+        raise ValueError(f"DG AGRI poultry dashboard: implausible week/price {week}/{price}")
+    year = updated.year
+    if week > updated.isocalendar().week + 1:  # januari frissites, tavalyi het
+        year -= 1
+    return {
+        "week_start": date.fromisocalendar(year, week, 1),
+        "price": price,
+        "week_pct": float(block.group(3).replace(" ", "")),
+        "updated": updated,
+    }
+
+
+def _previous_week_price(week_iso: str, key: str) -> float | None:
+    """A DB-ben levo, KOZVETLENUL megelozo het ara (change szamitashoz); None, ha nincs."""
+    import sqlite3
+    try:
+        year, week = week_iso.split("-W")
+        prev = date.fromisocalendar(int(year), int(week), 1) - timedelta(days=7)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
+        try:
+            row = conn.execute(
+                "SELECT o.price FROM observation o JOIN series s ON s.id = o.series_id "
+                "WHERE s.key = ? AND o.week_iso = ?",
+                (key, iso_week_from_date(prev)),
+            ).fetchone()
+        finally:
+            conn.close()
+        return None if row is None else float(row[0])
+    except Exception:
+        return None
+
+
+def scrape_eu_broiler_pdf(session: requests.Session, source: Source) -> list[dict[str, Any]]:
+    import subprocess
+    import tempfile
+    fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    response = session.get(EU_BROILER_PDF_URL, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    if not response.content.startswith(b"%PDF"):
+        raise ValueError("DG AGRI poultry dashboard: response is not a PDF")
+    pdftotext = next((p for p in ("/opt/homebrew/bin/pdftotext", "/usr/local/bin/pdftotext", "pdftotext")
+                      if p == "pdftotext" or Path(p).exists()), "pdftotext")
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = Path(tmp) / "poultry.pdf"
+        pdf.write_bytes(response.content)
+        result = subprocess.run(
+            [pdftotext, "-layout", "-f", "1", "-l", "2", str(pdf), "-"],
+            capture_output=True, text=True, timeout=60, check=True,
+        )
+    parsed = parse_eu_broiler_dashboard_text(result.stdout)
+    point_date = parsed["week_start"]
+    week_iso = iso_week_from_date(point_date)
+    previous = _previous_week_price(week_iso, source.key)
+    change = None if previous is None else round_change(parsed["price"] - previous)
+    return [
+        {
+            "key": source.key,
+            "label": source.label,
+            "country": source.country,
+            "category": source.category,
+            "size": None,
+            "color": None,
+            "unit": source.export_unit,
+            "source_url": EU_BROILER_PDF_URL,
+            "week_iso": week_iso,
+            "observed_date": point_date.isoformat(),
+            "price": parsed["price"],
+            "change": change,
+            "fetched_at": fetched_at,
+            "raw": {
+                "kind": "eu_broiler_pdf",
+                "dashboard_updated": parsed["updated"].isoformat(),
+                "week_pct": parsed["week_pct"],
+            },
+        }
+    ]
+
+
+def scrape_eu_broiler_api(session: requests.Session, source: Source) -> list[dict[str, Any]]:
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     end = date.today()
     start = end - timedelta(days=370)
