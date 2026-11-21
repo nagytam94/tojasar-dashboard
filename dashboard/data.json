@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-20T09:04:12+02:00",
+  "generated_at": "2026-11-21T09:04:21+02:00",
   "schema_version": "0.5",
   "freshness": {
-    "as_of": "2026-11-20",
+    "as_of": "2026-11-21",
     "fallback_stale_after_days": 21,
     "series_total": 50,
     "series_stale": [
@@ -10,13 +10,14 @@
         "key": "eu_whole_broiler_65",
         "label": "EU Whole broiler (65%)",
         "updated_through": "2026-10-26",
-        "days_since_update": 25,
+        "days_since_update": 26,
         "stale_after_days": 14,
-        "reason": "age",
+        "reason": "delivery",
         "reasons": [
+          "delivery",
           "age"
         ],
-        "days_since_delivery": 15,
+        "days_since_delivery": 16,
         "delivery_stale_after_days": 15
       }
     ],
@@ -502,7 +503,7 @@
             }
           ],
           "updated_through": "2026-11-18",
-          "days_since_update": 2,
+          "days_since_update": 3,
           "stale_after_days": 14
         },
         {
@@ -977,7 +978,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         }
       ]
@@ -1149,7 +1150,7 @@
               "week": "2025-W47",
               "date": "2025-11-21",
               "price": 2.67,
-              "change": -0.013
+              "change": null
             },
             {
               "week": "2025-W48",
@@ -1455,11 +1456,17 @@
               "week": "2026-W46",
               "date": "2026-11-13",
               "price": 1.55,
-              "change": -0.02
+              "change": -0.017
+            },
+            {
+              "week": "2026-W47",
+              "date": "2026-11-20",
+              "price": 1.513,
+              "change": -0.04
             }
           ],
-          "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "updated_through": "2026-11-20",
+          "days_since_update": 1,
           "stale_after_days": 14
         },
         {
@@ -1934,7 +1941,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -2409,7 +2416,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -2884,7 +2891,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         }
       ]
@@ -3366,7 +3373,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -3841,7 +3848,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -4316,7 +4323,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -4791,7 +4798,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -5266,7 +5273,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -5741,7 +5748,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -6216,7 +6223,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -6691,7 +6698,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -7166,7 +7173,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -7641,7 +7648,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -8116,7 +8123,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -8591,7 +8598,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -9066,7 +9073,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -9541,7 +9548,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 14
         },
         {
@@ -10016,7 +10023,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -10491,7 +10498,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -10966,7 +10973,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -11441,7 +11448,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -11916,7 +11923,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -12391,7 +12398,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -12866,7 +12873,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -13341,7 +13348,7 @@
             }
           ],
           "updated_through": "2026-11-17",
-          "days_since_update": 3,
+          "days_since_update": 4,
           "stale_after_days": 15
         },
         {
@@ -13810,7 +13817,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -14279,7 +14286,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -14748,7 +14755,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -15217,7 +15224,7 @@
             }
           ],
           "updated_through": "2026-11-19",
-          "days_since_update": 1,
+          "days_since_update": 2,
           "stale_after_days": 15
         },
         {
@@ -15692,7 +15699,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -16167,7 +16174,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -16642,7 +16649,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -17117,7 +17124,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -17592,7 +17599,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -18067,7 +18074,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -18542,7 +18549,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -19017,7 +19024,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -19492,7 +19499,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -19967,7 +19974,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -20442,7 +20449,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -20917,7 +20924,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -21392,7 +21399,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -21867,7 +21874,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -22342,7 +22349,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         },
         {
@@ -22817,7 +22824,7 @@
             }
           ],
           "updated_through": "2026-11-13",
-          "days_since_update": 7,
+          "days_since_update": 8,
           "stale_after_days": 14
         }
       ]
@@ -23137,7 +23144,7 @@
             }
           ],
           "updated_through": "2026-11-16",
-          "days_since_update": 4,
+          "days_since_update": 5,
           "stale_after_days": 14
         }
       ]
@@ -23601,7 +23608,7 @@
             }
           ],
           "updated_through": "2026-10-26",
-          "days_since_update": 25,
+          "days_since_update": 26,
           "stale_after_days": 14
         }
       ]
